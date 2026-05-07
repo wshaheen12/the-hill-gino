@@ -8,66 +8,90 @@
         body { background: #0a0a0a; color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; }
         .header { padding: 20px; border-bottom: 1px solid #333; }
         .king-section { background: #161616; padding: 30px; margin: 20px; border-radius: 15px; border: 2px solid #22c55e; }
-        .rail-list { padding: 20px; text-align: left; max-width: 400px; margin: auto; }
+        .rail-list { padding: 20px; text-align: left; max-width: 400px; margin: auto; min-height: 200px; }
         .player-card { background: #222; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; }
-        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 20px; box-sizing: border-box; }
-        input { padding: 15px; width: 60%; border-radius: 8px; border: none; font-size: 16px; }
-        button { padding: 15px 25px; border-radius: 8px; border: none; background: #22c55e; font-weight: bold; font-size: 16px; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 20px; box-sizing: border-box; display: flex; gap: 10px; }
+        input { flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
+        button { padding: 15px 25px; border-radius: 8px; border: none; background: #22c55e; font-weight: bold; font-size: 16px; color: black; }
     </style>
 </head>
 <body>
-    <div class="header"><h1>GINO AND CARLO</h1><p>King of the Hill</p></div>
+    <div class="header"><h1>GINO AND CARLO</h1><p>King of the Hill Pilot</p></div>
     
     <div class="king-section">
         <div style="font-size: 12px; opacity: 0.6;">CURRENT KING</div>
-        <div id="kingName" style="font-size: 32px; font-weight: bold; color: #22c55e;">Waiting...</div>
+        <div id="kingName" style="font-size: 32px; font-weight: bold; color: #22c55e;">Loading...</div>
     </div>
 
-    <div class="rail-list" id="railDisplay"></div>
+    <div class="rail-list" id="railDisplay">
+        <p style="text-align:center; opacity:0.5;">Waiting for players...</p>
+    </div>
 
     <div class="controls">
         <input type="text" id="nameInput" placeholder="Enter Name">
-        <button onclick="joinRail()">JOIN</button>
+        <button id="joinBtn">JOIN RAIL</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // REPLACE THIS BLOCK WITH YOUR CONFIG
+        // IMPORTANT: Double check these 100% against your Firebase Project Settings
         const firebaseConfig = {
-  apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
-  authDomain: "the-hill-pilot.firebaseapp.com",
-  projectId: "the-hill-pilot",
-  storageBucket: "the-hill-pilot.firebasestorage.app",
-  messagingSenderId: "965013734125",
-  appId: "1:965013734125:web:bef8fbb9029fb898d742e4"
-};
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "...",
+            appId: "..."
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const railRef = collection(db, "rail");
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const railRef = collection(db, "rail");
 
-        window.joinRail = async () => {
-            const name = document.getElementById('nameInput').value;
-            if (name) {
-                await addDoc(railRef, { name: name, time: Date.now() });
-                document.getElementById('nameInput').value = '';
-            }
-        };
+            // JOIN FUNCTION
+            document.getElementById('joinBtn').addEventListener('click', async () => {
+                const nameField = document.getElementById('nameInput');
+                const name = nameField.value.trim();
+                
+                if (!name) {
+                    alert("Please enter a name first!");
+                    return;
+                }
 
-        onSnapshot(query(railRef, orderBy("time", "asc")), (snapshot) => {
-            const players = [];
-            snapshot.forEach(doc => players.push(doc.data()));
-            document.getElementById('kingName').innerText = players[0]?.name || "Open Table";
-            
-            const railHtml = players.slice(1).map((p, i) => `
-                <div class="player-card"><span>${i+1}. ${p.name}</span><span style="opacity:0.5">Waiting</span></div>
-            `).join('');
-            document.getElementById('railDisplay').innerHTML = railHtml;
-        });
+                try {
+                    await addDoc(railRef, { 
+                        name: name, 
+                        time: Date.now() 
+                    });
+                    nameField.value = '';
+                    console.log("Success!");
+                } catch (err) {
+                    alert("DATABASE ERROR: " + err.message);
+                }
+            });
+
+            // LIVE SYNC
+            onSnapshot(query(railRef, orderBy("time", "asc")), (snapshot) => {
+                const players = [];
+                snapshot.forEach(doc => players.push(doc.data()));
+                
+                document.getElementById('kingName').innerText = players[0]?.name || "Open Table";
+                
+                const railHtml = players.slice(1).map((p, i) => `
+                    <div class="player-card"><span>${i+1}. ${p.name}</span><span style="opacity:0.5">Waiting</span></div>
+                `).join('');
+                
+                document.getElementById('railDisplay').innerHTML = railHtml || '<p style="text-align:center; opacity:0.5;">Rail is empty</p>';
+            }, (err) => {
+                alert("SYNC ERROR: " + err.message);
+            });
+
+        } catch (setupErr) {
+            alert("SETUP ERROR: " + setupErr.message);
+        }
     </script>
 </body>
 </html>
-
