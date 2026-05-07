@@ -1,1 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Hill - Gino and Carlo</title>
+    <style>
+        body { background: #0a0a0a; color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; }
+        .header { padding: 20px; border-bottom: 1px solid #333; }
+        .king-section { background: #161616; padding: 30px; margin: 20px; border-radius: 15px; border: 2px solid #22c55e; }
+        .rail-list { padding: 20px; text-align: left; max-width: 400px; margin: auto; }
+        .player-card { background: #222; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 20px; box-sizing: border-box; }
+        input { padding: 15px; width: 60%; border-radius: 8px; border: none; font-size: 16px; }
+        button { padding: 15px 25px; border-radius: 8px; border: none; background: #22c55e; font-weight: bold; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="header"><h1>GINO AND CARLO</h1><p>King of the Hill</p></div>
+    
+    <div class="king-section">
+        <div style="font-size: 12px; opacity: 0.6;">CURRENT KING</div>
+        <div id="kingName" style="font-size: 32px; font-weight: bold; color: #22c55e;">Waiting...</div>
+    </div>
+
+    <div class="rail-list" id="railDisplay"></div>
+
+    <div class="controls">
+        <input type="text" id="nameInput" placeholder="Enter Name">
+        <button onclick="joinRail()">JOIN</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // REPLACE THIS BLOCK WITH YOUR CONFIG
+        const firebaseConfig = {
+  apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
+  authDomain: "the-hill-pilot.firebaseapp.com",
+  projectId: "the-hill-pilot",
+  storageBucket: "the-hill-pilot.firebasestorage.app",
+  messagingSenderId: "965013734125",
+  appId: "1:965013734125:web:bef8fbb9029fb898d742e4"
+};
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const railRef = collection(db, "rail");
+
+        window.joinRail = async () => {
+            const name = document.getElementById('nameInput').value;
+            if (name) {
+                await addDoc(railRef, { name: name, time: Date.now() });
+                document.getElementById('nameInput').value = '';
+            }
+        };
+
+        onSnapshot(query(railRef, orderBy("time", "asc")), (snapshot) => {
+            const players = [];
+            snapshot.forEach(doc => players.push(doc.data()));
+            document.getElementById('kingName').innerText = players[0]?.name || "Open Table";
+            
+            const railHtml = players.slice(1).map((p, i) => `
+                <div class="player-card"><span>${i+1}. ${p.name}</span><span style="opacity:0.5">Waiting</span></div>
+            `).join('');
+            document.getElementById('railDisplay').innerHTML = railHtml;
+        });
+    </script>
+</body>
+</html>
 
