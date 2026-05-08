@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Hill - Gino and Carlo</title>
     <style>
-        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --info: #3b82f6; }
+        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; }
         
         .event-banner { background: #fff; color: #000; font-weight: 900; padding: 12px; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
@@ -13,14 +13,8 @@
         
         .top-nav { position: sticky; top: 32px; background: var(--bg); z-index: 90; padding-bottom: 10px; border-bottom: 1px solid #333; }
         
-        .timer-container { margin: 10px 15px; padding: 10px; background: #111; border-radius: 8px; border: 1px solid #333; }
-        #timer-display { font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; color: #555; }
-        #match-status { font-size: 11px; font-weight: bold; text-transform: uppercase; margin-top: 4px; color: #555; }
-        .active-timer { color: var(--warning) !important; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.7; } }
-
-        .match-box { background: var(--card); margin: 10px 15px; padding: 15px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
-        .player-name { font-size: 22px; font-weight: 800; color: var(--accent); display: block; }
+        .match-box { background: var(--card); margin: 15px; padding: 20px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
+        .player-name { font-size: 24px; font-weight: 800; color: var(--accent); display: block; margin-top: 4px; }
         
         .lists-container { padding: 0 20px 240px; text-align: left; max-width: 500px; margin: auto; }
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 14px; text-transform: uppercase; opacity: 0.6; margin-top: 25px; }
@@ -45,15 +39,10 @@
     <div class="prize-banner">🏆 Monthly Prize: $200 Bar Tab</div>
     
     <div class="top-nav">
-        <div class="timer-container">
-            <div id="timer-display">--:--</div>
-            <div id="match-status">Match In Progress</div>
-        </div>
-        
         <div class="match-box">
-            <div class="player"><span style="font-size:9px; opacity:0.6">KING</span><span id="kingName" class="player-name">---</span></div>
-            <div style="opacity:0.3; font-style:italic; font-size: 12px;">VS</div>
-            <div class="player"><span style="font-size:9px; opacity:0.6">CHALLENGER</span><span id="chalName" class="player-name">---</span></div>
+            <div class="player"><span style="font-size:10px; opacity:0.6; font-weight:bold;">KING</span><span id="kingName" class="player-name">---</span></div>
+            <div style="opacity:0.3; font-style:italic; font-size: 14px;">VS</div>
+            <div class="player"><span style="font-size:10px; opacity:0.6; font-weight:bold;">CHALLENGER</span><span id="chalName" class="player-name">---</span></div>
         </div>
     </div>
 
@@ -79,7 +68,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, deleteDoc, getDocs, where, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, getDocs, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
@@ -94,49 +83,12 @@
         const db = getFirestore(app);
         const railRef = collection(db, "rail");
         const leadersRef = collection(db, "leaderboard");
-        const statusRef = doc(db, "status", "matchState");
 
         let currentPlayers = [];
-        let timerInterval;
-
-        const updateTimerUI = (startTime, isTransitioning) => {
-            clearInterval(timerInterval);
-            const display = document.getElementById('timer-display');
-            const statusLabel = document.getElementById('match-status');
-
-            if (!isTransitioning) {
-                display.innerText = "--:--";
-                display.classList.remove('active-timer');
-                statusLabel.innerText = "Match In Progress";
-                statusLabel.style.color = "var(--accent)";
-                return;
-            }
-
-            statusLabel.innerText = "Next Match Start In:";
-            statusLabel.style.color = "var(--warning)";
-            display.classList.add('active-timer');
-
-            timerInterval = setInterval(async () => {
-                const remaining = Math.max(0, (3 * 60 * 1000) - (Date.now() - startTime));
-                const mins = Math.floor(remaining / 60000);
-                const secs = Math.floor((remaining % 60000) / 1000);
-                display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                
-                if (remaining === 0) {
-                    clearInterval(timerInterval);
-                    await setDoc(statusRef, { isTransitioning: false });
-                }
-            }, 1000);
-        };
-
-        onSnapshot(statusRef, (snap) => {
-            if (snap.exists()) updateTimerUI(snap.data().startTime, snap.data().isTransitioning);
-        });
 
         window.joinRail = async () => {
             const input = document.getElementById('nameInput');
             if (input.value.trim()) {
-                // Now includes a 'status' field
                 await addDoc(railRef, { 
                     name: input.value.trim(), 
                     time: Date.now(), 
@@ -148,7 +100,6 @@
 
         window.removeFromRail = async (id) => {
             if (confirm("Remove player from the active queue?")) {
-                // CHANGED: Update status instead of deleting the document
                 await updateDoc(doc(db, "rail", id), { status: "removed" });
             }
         };
@@ -160,8 +111,6 @@
                 const index = parseInt(choice) - 1;
                 const offender = currentPlayers[index];
                 try {
-                    await setDoc(statusRef, { isTransitioning: false });
-                    // Archive old entry and create new one at the back
                     await updateDoc(doc(db, "rail", offender.id), { status: "forfeited" });
                     await addDoc(railRef, { name: offender.name, time: Date.now(), status: "active" });
                 } catch (e) { alert(e.message); }
@@ -173,18 +122,15 @@
             const winnerName = (winner === 'king') ? currentPlayers[0].name : currentPlayers[1].name;
             const loserId = (winner === 'king') ? currentPlayers[1].id : currentPlayers[0].id;
             try {
-                await setDoc(statusRef, { startTime: Date.now(), isTransitioning: true });
                 const q = query(leadersRef, where("name", "==", winnerName));
                 const snap = await getDocs(q);
                 if (snap.empty) await addDoc(leadersRef, { name: winnerName, wins: 1 });
                 else await updateDoc(snap.docs[0].ref, { wins: increment(1) });
                 
-                // Archive loser instead of deleting
                 await updateDoc(doc(db, "rail", loserId), { status: "lost" });
             } catch (e) { alert(e.message); }
         };
 
-        // FIXED QUERY: Only fetch players with status "active"
         const railQuery = query(railRef, where("status", "==", "active"), orderBy("time", "asc"));
 
         onSnapshot(railQuery, (snap) => {
