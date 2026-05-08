@@ -10,7 +10,6 @@
         
         .prize-banner { background: var(--accent); color: black; font-weight: bold; padding: 10px; font-size: 13px; text-transform: uppercase; position: sticky; top: 0; z-index: 100; }
         
-        /* Fixed Top Section */
         .top-nav { position: sticky; top: 38px; background: var(--bg); z-index: 90; padding-bottom: 10px; border-bottom: 1px solid #333; }
         
         .timer-container { margin: 10px 15px; padding: 10px; background: #111; border-radius: 8px; border: 1px solid #333; }
@@ -22,22 +21,21 @@
         .match-box { background: var(--card); margin: 10px 15px; padding: 15px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
         .player-name { font-size: 22px; font-weight: 800; color: var(--accent); display: block; }
         
-        /* Scrollable List Area */
-        .lists-container { padding: 0 20px 220px; text-align: left; max-width: 500px; margin: auto; }
+        /* Scrollable Area with explicit padding for the fixed footer */
+        .lists-container { padding: 0 20px 240px; text-align: left; max-width: 500px; margin: auto; }
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 14px; text-transform: uppercase; opacity: 0.6; margin-top: 25px; }
         
         .entry { background: #1a1a1a; padding: 10px 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; }
         .remove-btn { color: var(--warning); border: 1px solid var(--warning); padding: 4px 8px; border-radius: 4px; font-size: 10px; background: transparent; font-weight: bold; }
 
-        /* Compact Sticky Controls */
         .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
         .input-group { display: flex; gap: 8px; }
         input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
-        .btn-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         button { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
         
         .btn-join { background: var(--accent); color: black; }
-        .btn-start { background: var(--info); color: white; }
+        .btn-forfeit { background: #444; color: white; font-size: 11px; }
         .btn-king { background: #2563eb; color: white; text-transform: uppercase; font-size: 11px; }
         .btn-chal { background: #7c3aed; color: white; text-transform: uppercase; font-size: 11px; }
     </style>
@@ -47,7 +45,7 @@
     
     <div class="top-nav">
         <div class="timer-container">
-            <div id="timer-display">03:00</div>
+            <div id="timer-display">--:--</div>
             <div id="match-status">Match In Progress</div>
         </div>
         
@@ -72,7 +70,7 @@
             <button class="btn-join" onclick="joinRail()">JOIN</button>
         </div>
         <div class="btn-row">
-            <button class="btn-start" onclick="startMatch()">START MATCH</button>
+            <button class="btn-forfeit" onclick="forfeitDelay()">FORFEIT (DELAY)</button>
             <button class="btn-king" onclick="recordWin('king')">KING WON</button>
             <button class="btn-chal" onclick="recordWin('chal')">CHAL WON</button>
         </div>
@@ -117,14 +115,15 @@
             statusLabel.style.color = "var(--warning)";
             display.classList.add('active-timer');
 
-            timerInterval = setInterval(() => {
+            timerInterval = setInterval(async () => {
                 const remaining = Math.max(0, (3 * 60 * 1000) - (Date.now() - startTime));
                 const mins = Math.floor(remaining / 60000);
                 const secs = Math.floor((remaining % 60000) / 1000);
                 display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                
                 if (remaining === 0) {
-                    display.innerText = "START NOW!";
                     clearInterval(timerInterval);
+                    await setDoc(statusRef, { isTransitioning: false });
                 }
             }, 1000);
         };
@@ -132,10 +131,6 @@
         onSnapshot(statusRef, (snap) => {
             if (snap.exists()) updateTimerUI(snap.data().startTime, snap.data().isTransitioning);
         });
-
-        window.startMatch = async () => {
-            await setDoc(statusRef, { isTransitioning: false });
-        };
 
         window.joinRail = async () => {
             const input = document.getElementById('nameInput');
@@ -151,22 +146,36 @@
             }
         };
 
+        window.forfeitDelay = async () => {
+            if (currentPlayers.length < 2) return;
+            
+            const choice = prompt("Who is delaying? Type '1' for KING or '2' for CHALLENGER:");
+            if (choice === '1' || choice === '2') {
+                const index = parseInt(choice) - 1;
+                const offender = currentPlayers[index];
+                
+                try {
+                    // 1. End transition timer visually
+                    await setDoc(statusRef, { isTransitioning: false });
+                    // 2. Remove from current spot
+                    await deleteDoc(doc(db, "rail", offender.id));
+                    // 3. Add back to the end of the line
+                    await addDoc(railRef, { name: offender.name, time: Date.now() });
+                } catch (e) { alert(e.message); }
+            }
+        };
+
         window.recordWin = async (winner) => {
             if (currentPlayers.length < 2) return;
             const winnerName = (winner === 'king') ? currentPlayers[0].name : currentPlayers[1].name;
             const loserId = (winner === 'king') ? currentPlayers[1].id : currentPlayers[0].id;
 
             try {
-                // Start Transition Timer
                 await setDoc(statusRef, { startTime: Date.now(), isTransitioning: true });
-                
-                // Update Leaderboard (Historical wins)
                 const q = query(leadersRef, where("name", "==", winnerName));
                 const snap = await getDocs(q);
                 if (snap.empty) await addDoc(leadersRef, { name: winnerName, wins: 1 });
                 else await updateDoc(snap.docs[0].ref, { wins: increment(1) });
-                
-                // Remove Loser from Rail
                 await deleteDoc(doc(db, "rail", loserId));
             } catch (e) { alert(e.message); }
         };
