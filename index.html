@@ -5,74 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Hill - Gino and Carlo</title>
     <style>
-        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; }
-        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding-bottom: 200px; }
+        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --info: #3b82f6; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding-bottom: 220px; }
         .prize-banner { background: var(--accent); color: black; font-weight: bold; padding: 12px; font-size: 14px; text-transform: uppercase; position: sticky; top: 0; z-index: 10; }
         .header { padding: 15px; border-bottom: 1px solid #333; }
         
-        /* Timer Styles */
-        .timer-container { margin: 10px 15px 0; padding: 10px; background: #111; border-radius: 8px; border: 1px solid #333; }
-        #timer-display { font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); }
+        /* Timer & Status */
+        .timer-container { margin: 10px 15px; padding: 15px; background: #111; border-radius: 8px; border: 1px solid #333; }
+        #timer-display { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; color: #555; }
+        #match-status { font-size: 12px; font-weight: bold; text-transform: uppercase; margin-top: 5px; color: #555; }
+        .active-timer { color: var(--accent) !important; }
         .timer-low { color: var(--warning) !important; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        .match-box { background: var(--card); margin: 15px; padding: 25px; border-radius: 15px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .player { flex: 1; }
+        .match-box { background: var(--card); margin: 15px; padding: 25px; border-radius: 15px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
         .player-name { font-size: 28px; font-weight: 800; color: var(--accent); display: block; margin-top: 5px; }
-        .vs { opacity: 0.3; font-style: italic; font-size: 18px; margin: 0 10px; }
         
         .lists-container { padding: 0 20px; text-align: left; max-width: 500px; margin: auto; }
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 16px; text-transform: uppercase; opacity: 0.7; margin-top: 30px; }
-        .entry { background: #1a1a1a; padding: 14px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid transparent; }
-        .leader-entry { border-left-color: var(--accent); }
-        
-        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 20px; box-sizing: border-box; border-top: 1px solid #333; box-shadow: 0 -5px 20px rgba(0,0,0,0.8); }
-        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
-        input { flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
-        button { padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: transform 0.1s; }
-        button:active { transform: scale(0.95); }
-        .btn-join { background: var(--accent); color: black; min-width: 80px; }
-        .win-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn-king { background: #3b82f6; color: white; }
-        .btn-chal { background: #8b5cf6; color: white; }
-        
-        #status-dot { height: 8px; width: 8px; background-color: #555; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .online { background-color: var(--accent) !important; }
+        .entry { background: #1a1a1a; padding: 12px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .remove-btn { color: var(--warning); border: 1px solid var(--warning); padding: 4px 8px; border-radius: 4px; font-size: 10px; background: transparent; }
+
+        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 20px; box-sizing: border-box; border-top: 1px solid #333; z-index: 100; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        input { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
+        button { padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-start { background: var(--info); color: white; grid-column: span 2; }
+        .btn-king { background: #2563eb; color: white; }
+        .btn-chal { background: #7c3aed; color: white; }
+        .btn-join { background: var(--accent); color: black; }
     </style>
 </head>
 <body>
     <div class="prize-banner">🏆 Monthly Prize: $200 Bar Tab</div>
-    <div class="header">
-        <h1>GINO AND CARLO</h1>
-        <div style="font-size: 10px; opacity: 0.5;"><span id="status-dot"></span> System Connected</div>
-    </div>
-
-    <!-- Timer UI -->
+    
     <div class="timer-container">
-        <div style="font-size: 10px; opacity: 0.6; margin-bottom: 5px;">MATCH CLOCK</div>
         <div id="timer-display">03:00</div>
+        <div id="match-status">Match Pending</div>
     </div>
     
     <div class="match-box">
         <div class="player"><span style="font-size:10px; opacity:0.6">KING</span><span id="kingName" class="player-name">---</span></div>
-        <div class="vs">vs</div>
+        <div style="opacity:0.3; font-style:italic;">vs</div>
         <div class="player"><span style="font-size:10px; opacity:0.6">CHALLENGER</span><span id="chalName" class="player-name">---</span></div>
     </div>
 
     <div class="lists-container">
         <h3>Top Players (Monthly)</h3>
         <div id="leaderboardList"></div>
-        
         <h3>The Rail</h3>
         <div id="railList"></div>
     </div>
 
     <div class="controls">
-        <div class="input-group">
-            <input type="text" id="nameInput" placeholder="Enter Name to Join">
-            <button class="btn-join" onclick="joinRail()">JOIN</button>
-        </div>
-        <div class="win-buttons">
+        <input type="text" id="nameInput" placeholder="Enter Name to Join">
+        <button class="btn-join" style="width:100%" onclick="joinRail()">JOIN THE RAIL</button>
+        <div class="btn-row">
+            <button class="btn-start" onclick="startMatch()">START MATCH</button>
             <button class="btn-king" onclick="recordWin('king')">KING WON</button>
             <button class="btn-chal" onclick="recordWin('chal')">CHALLENGER WON</button>
         </div>
@@ -80,7 +69,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, deleteDoc, getDocs, where, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, deleteDoc, getDocs, where, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
@@ -95,104 +84,93 @@
         const db = getFirestore(app);
         const railRef = collection(db, "rail");
         const leadersRef = collection(db, "leaderboard");
-        const timerDocRef = doc(db, "status", "matchTimer");
+        const statusRef = doc(db, "status", "matchState");
 
         let currentPlayers = [];
         let timerInterval;
 
-        // Timer Logic
-        const startTimer = (startTime) => {
+        const updateTimerUI = (startTime, isRunning) => {
             clearInterval(timerInterval);
-            const duration = 3 * 60 * 1000; // 3 minutes
-            
+            const display = document.getElementById('timer-display');
+            const statusLabel = document.getElementById('match-status');
+
+            if (!isRunning) {
+                display.innerText = "03:00";
+                display.classList.remove('active-timer', 'timer-low');
+                statusLabel.innerText = "Match Pending";
+                statusLabel.style.color = "#555";
+                return;
+            }
+
+            statusLabel.innerText = "Match In Progress";
+            statusLabel.style.color = "var(--accent)";
+            display.classList.add('active-timer');
+
             timerInterval = setInterval(() => {
-                const now = Date.now();
-                const elapsed = now - startTime;
-                const remaining = Math.max(0, duration - elapsed);
-                
+                const remaining = Math.max(0, (3 * 60 * 1000) - (Date.now() - startTime));
                 const mins = Math.floor(remaining / 60000);
                 const secs = Math.floor((remaining % 60000) / 1000);
-                const display = document.getElementById('timer-display');
-                
                 display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 
                 if (remaining < 30000) display.classList.add('timer-low');
-                else display.classList.remove('timer-low');
-                
-                if (remaining === 0) {
-                    display.innerText = "TIME'S UP!";
-                    clearInterval(timerInterval);
-                }
+                if (remaining === 0) clearInterval(timerInterval);
             }, 1000);
         };
 
-        // Sync Timer across all devices
-        onSnapshot(timerDocRef, (snap) => {
-            if (snap.exists()) {
-                startTimer(snap.data().startTime);
-            }
+        onSnapshot(statusRef, (snap) => {
+            if (snap.exists()) updateTimerUI(snap.data().startTime, snap.data().isRunning);
         });
+
+        window.startMatch = async () => {
+            if (currentPlayers.length < 2) return alert("Need 2 players to start!");
+            await setDoc(statusRef, { startTime: Date.now(), isRunning: true });
+        };
 
         window.joinRail = async () => {
             const input = document.getElementById('nameInput');
-            const name = input.value.trim();
-            if (name) {
-                try {
-                    await addDoc(railRef, { name: name, time: Date.now() });
-                    input.value = '';
-                } catch (e) { alert("Join failed: " + e.message); }
+            if (input.value.trim()) {
+                await addDoc(railRef, { name: input.value.trim(), time: Date.now() });
+                input.value = '';
+            }
+        };
+
+        window.removeFromRail = async (id) => {
+            if (confirm("Remove this player from the rail?")) {
+                await deleteDoc(doc(db, "rail", id));
             }
         };
 
         window.recordWin = async (winner) => {
-            if (currentPlayers.length < 2) {
-                alert("Need a King and a Challenger!");
-                return;
-            }
-            
-            const king = currentPlayers[0];
-            const challenger = currentPlayers[1];
-            const winnerName = (winner === 'king') ? king.name : challenger.name;
-            const loserId = (winner === 'king') ? challenger.id : king.id;
+            if (currentPlayers.length < 2) return;
+            const winnerName = (winner === 'king') ? currentPlayers[0].name : currentPlayers[1].name;
+            const loserId = (winner === 'king') ? currentPlayers[1].id : currentPlayers[0].id;
 
             try {
-                // Reset Timer for the next match
-                await setDoc(timerDocRef, { startTime: Date.now() });
-
-                // Update Leaderboard
+                await setDoc(statusRef, { isRunning: false }); // Reset timer state
                 const q = query(leadersRef, where("name", "==", winnerName));
                 const snap = await getDocs(q);
-                if (snap.empty) {
-                    await addDoc(leadersRef, { name: winnerName, wins: 1 });
-                } else {
-                    await updateDoc(snap.docs[0].ref, { wins: increment(1) });
-                }
-                
-                // Remove Loser
+                if (snap.empty) await addDoc(leadersRef, { name: winnerName, wins: 1 });
+                else await updateDoc(snap.docs[0].ref, { wins: increment(1) });
                 await deleteDoc(doc(db, "rail", loserId));
-            } catch (e) { alert("Action failed: " + e.message); }
+            } catch (e) { alert(e.message); }
         };
 
-        // Connection Dot
-        onSnapshot(doc(db, ".info/connected"), (snap) => {
-            if (snap.data()?.connected) document.getElementById('status-dot').classList.add('online');
-            else document.getElementById('status-dot').classList.remove('online');
-        });
-
-        // Lists Sync
         onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
             currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
             document.getElementById('chalName').innerText = currentPlayers[1]?.name || "---";
             
-            document.getElementById('railList').innerHTML = currentPlayers.slice(2).map((p, i) => `
-                <div class="entry"><span>${i+1}. ${p.name}</span><span style="opacity:0.4">Waiting</span></div>
+            document.getElementById('railList').innerHTML = currentPlayers.map((p, i) => `
+                <div class="entry">
+                    <span>${i+1}. ${p.name}</span>
+                    <button class="remove-btn" onclick="removeFromRail('${p.id}')">REMOVE</button>
+                </div>
             `).join('');
         });
 
         onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
             document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map(d => `
-                <div class="entry leader-entry">
+                <div class="entry" style="border-left: 4px solid var(--accent)">
                     <span>${d.data().name}</span>
                     <span style="color:var(--accent); font-weight:bold;">${d.data().wins} Wins</span>
                 </div>
