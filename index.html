@@ -79,12 +79,14 @@
         };
 
         onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
-            const players = snap.docs.map(d => d.data()).filter(p => p.status === "active");
+            const players = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
             document.getElementById('kingName').innerText = players[0]?.name || "---";
             document.getElementById('kingStreak').innerText = players[0] ? `(${players[0].sessionWins || 0}/5)` : "";
             document.getElementById('chalName').innerText = players[1]?.name || "---";
             document.getElementById('railList').innerHTML = players.slice(2).map((p, i) => `
-                <div class="entry"><span>${i+3}. ${p.name}</span></div>`).join('');
+                <div class="entry">
+                    <span>${i+3}. ${p.name}</span>
+                </div>`).join('');
         });
 
         onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
