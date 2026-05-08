@@ -131,10 +131,15 @@
             } catch (e) { alert(e.message); }
         };
 
-        const railQuery = query(railRef, where("status", "==", "active"), orderBy("time", "asc"));
+        // Simplified Query (No Index Needed)
+        const railQuery = query(railRef, orderBy("time", "asc"));
 
         onSnapshot(railQuery, (snap) => {
-            currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Filter out non-active players locally to avoid Index requirements
+            currentPlayers = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(p => p.status === "active");
+
             document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
             document.getElementById('chalName').innerText = currentPlayers[1]?.name || "---";
             
