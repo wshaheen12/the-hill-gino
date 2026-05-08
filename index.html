@@ -8,7 +8,6 @@
         :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --info: #3b82f6; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; }
         
-        /* Event Banners */
         .event-banner { background: #fff; color: #000; font-weight: 900; padding: 12px; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
         .prize-banner { background: var(--accent); color: black; font-weight: bold; padding: 8px; font-size: 12px; text-transform: uppercase; position: sticky; top: 0; z-index: 100; }
         
@@ -180,12 +179,15 @@
             currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
             document.getElementById('chalName').innerText = currentPlayers[1]?.name || "---";
-            document.getElementById('railList').innerHTML = currentPlayers.map((p, i) => `
+            
+            // FIX: Only show players from index 2 onwards (the waitlist)
+            const waitlist = currentPlayers.slice(2);
+            document.getElementById('railList').innerHTML = waitlist.map((p, i) => `
                 <div class="entry">
-                    <span>${i+1}. ${p.name}</span>
+                    <span>${i+3}. ${p.name}</span>
                     <button class="remove-btn" onclick="removeFromRail('${p.id}')">REMOVE</button>
                 </div>
-            `).join('');
+            `).join('') || '<div style="opacity:0.3; font-size:12px; padding:10px;">Rail is currently empty.</div>';
         });
 
         onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
