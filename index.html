@@ -20,9 +20,7 @@
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 14px; text-transform: uppercase; opacity: 0.6; margin-top: 25px; }
         
         .entry { background: #1a1a1a; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; cursor: grab; position: relative; }
-        /* Drag Handle Notation */
         .entry::before { content: '↕️'; margin-right: 12px; opacity: 0.5; font-size: 12px; }
-        .entry:active { cursor: grabbing; }
         
         .entry-actions { display: flex; gap: 8px; }
         .btn-small { padding: 4px 8px; border-radius: 4px; font-size: 10px; background: transparent; font-weight: bold; border: 1px solid; cursor: pointer; }
@@ -132,9 +130,7 @@
 
             if (confirm("Revert rail to the previous state?")) {
                 const batch = writeBatch(db);
-                // Clear current active rail
                 currentPlayers.forEach(p => batch.update(doc(db, "rail", p.id), { status: "undone" }));
-                // Restore from snapshot
                 const previousState = snap.docs[0].data().state;
                 previousState.forEach(p => {
                     const newRef = doc(railRef);
@@ -155,7 +151,7 @@
 
         window.recordWin = async (winner) => {
             if (currentPlayers.length < 2) return;
-            await saveSnapshot(); // Save state BEFORE changes
+            await saveSnapshot();
             
             const winIdx = winner === 'king' ? 0 : 1;
             const loseIdx = winner === 'king' ? 1 : 0;
@@ -163,22 +159,27 @@
             const loserObj = currentPlayers[loseIdx];
 
             try {
-                // Update Win Counts
+                // 1. Update Leaderboard Wins
                 const q = query(leadersRef, where("name", "==", winnerObj.name));
                 const lSnap = await getDocs(q);
                 if (lSnap.empty) await addDoc(leadersRef, { name: winnerObj.name, wins: 1, streaks: 0 });
                 else await updateDoc(lSnap.docs[0].ref, { wins: increment(1) });
 
-                // Cycle Loser
+                // 2. Cycle Loser
                 await updateDoc(doc(db, "rail", loserObj.id), { status: "lost" });
                 await addDoc(railRef, { name: loserObj.name, time: Date.now(), status: "active", sessionWins: 0 });
 
-                // Streak Logic
+                // 3. Streak Logic
                 let newStreak = (winner === 'king' ? (winnerObj.sessionWins || 0) : 0) + 1;
                 if (newStreak >= 5) {
+                    // This is where the 🍺 is triggered
                     const q2 = query(leadersRef, where("name", "==", winnerObj.name));
                     const lSnap2 = await getDocs(q2);
-                    if (!lSnap2.empty) await updateDoc(lSnap2.docs[0].ref, { streaks: increment(1) });
+                    if (!lSnap2.empty) {
+                        // Only add ONE streak per rotation
+                        await updateDoc(lSnap2.docs[0].ref, { streaks: increment(1) });
+                    }
+                    
                     await updateDoc(doc(db, "rail", winnerObj.id), { status: "rotated" });
                     await addDoc(railRef, { name: winnerObj.name, time: Date.now() + 10, status: "active", sessionWins: 0 });
                     alert(`${winnerObj.name} hit 5 wins! 🍺 Rotating to back.`);
@@ -208,8 +209,10 @@
         onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
             document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map((d, i) => {
                 const data = d.data();
+                // ONLY show 🍺 based on the 'streaks' count, not total wins
+                const beerEmoji = (data.streaks && data.streaks > 0) ? '🍺' : '';
                 return `<div class="entry" style="border-left: 4px solid var(--accent); cursor: default;">
-                    <span>${i === 0 ? '👑 ' : ''}${data.name} ${data.streaks > 0 ? '🍺'.repeat(data.streaks) : ''}</span>
+                    <span>${i === 0 ? '👑 ' : ''}${data.name} ${beerEmoji}</span>
                     <span style="color:var(--accent); font-weight:bold;">${data.wins} Wins</span>
                 </div>`
             }).join('');
