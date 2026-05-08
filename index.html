@@ -42,7 +42,7 @@
     </div>
     <div class="controls">
         <div class="input-group">
-            <input type="text" id="nameInput" placeholder="Enter Your Name">
+            <input type="text" id="nameInput" placeholder="First & Last Name (Req)">
             <button onclick="joinRail()">JOIN RAIL</button>
         </div>
     </div>
@@ -67,9 +67,14 @@
 
         window.joinRail = async () => {
             const v = document.getElementById('nameInput').value.trim();
+            if (v.split(' ').length < 2) {
+                alert("Please enter both your First and Last name.");
+                return;
+            }
             if (v) { 
                 await addDoc(railRef, { name: v, time: Date.now(), status: "active", sessionWins: 0 }); 
                 document.getElementById('nameInput').value = '';
+                alert("You're on the rail!");
             }
         };
 
