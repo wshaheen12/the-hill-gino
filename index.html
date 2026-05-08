@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Hill - Gino and Carlo</title>
-    <!-- Added SortableJS for Drag and Drop -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --edit: #f59e0b; }
@@ -14,17 +13,18 @@
         .prize-banner { background: var(--accent); color: black; font-weight: bold; padding: 8px; font-size: 12px; text-transform: uppercase; position: sticky; top: 0; z-index: 100; }
         
         .top-nav { position: sticky; top: 32px; background: var(--bg); z-index: 90; padding-bottom: 10px; border-bottom: 1px solid #333; }
-        
         .match-box { background: var(--card); margin: 15px; padding: 20px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
         .player-name { font-size: 24px; font-weight: 800; color: var(--accent); display: block; margin-top: 4px; }
         
         .lists-container { padding: 0 20px 240px; text-align: left; max-width: 500px; margin: auto; }
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 14px; text-transform: uppercase; opacity: 0.6; margin-top: 25px; }
         
-        .entry { background: #1a1a1a; padding: 10px 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; cursor: grab; }
+        .entry { background: #1a1a1a; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; cursor: grab; position: relative; }
+        /* Drag Handle Notation */
+        .entry::before { content: '↕️'; margin-right: 12px; opacity: 0.5; font-size: 12px; }
         .entry:active { cursor: grabbing; }
-        .entry-actions { display: flex; gap: 8px; }
         
+        .entry-actions { display: flex; gap: 8px; }
         .btn-small { padding: 4px 8px; border-radius: 4px; font-size: 10px; background: transparent; font-weight: bold; border: 1px solid; cursor: pointer; }
         .remove-btn { color: var(--warning); border-color: var(--warning); }
         .edit-btn { color: var(--edit); border-color: var(--edit); }
@@ -36,13 +36,12 @@
         button { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
         
         .btn-join { background: var(--accent); color: black; }
-        .btn-undo { background: #333; color: #aaa; font-size: 11px; }
+        .btn-undo { background: #333; color: #ff4444; font-size: 11px; border: 1px solid #444; }
         .btn-king { background: #2563eb; color: white; }
         .btn-chal { background: #7c3aed; color: white; }
         .btn-forfeit { background: #444; color: white; font-size: 10px; }
         
-        /* Drag Handle placeholder */
-        .sortable-ghost { opacity: 0.3; background: var(--accent); }
+        .sortable-ghost { opacity: 0.1; background: var(--accent); }
     </style>
 </head>
 <body>
@@ -68,7 +67,7 @@
         <h3>June Leaderboard</h3>
         <div id="leaderboardList"></div>
         
-        <h3>The Rail (Drag to reorder)</h3>
+        <h3>The Rail (Drag ↕️ to Reorder)</h3>
         <div id="railList"></div>
     </div>
 
@@ -87,7 +86,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, getDocs, where, deleteDoc, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, getDocs, where, deleteDoc, limit, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
@@ -102,101 +101,100 @@
         const db = getFirestore(app);
         const railRef = collection(db, "rail");
         const leadersRef = collection(db, "leaderboard");
-        const logsRef = collection(db, "matchLogs");
+        const snapshotsRef = collection(db, "snapshots");
 
         let currentPlayers = [];
         const railListEl = document.getElementById('railList');
 
-        // Initialize Drag and Drop
-        const sortable = new Sortable(railListEl, {
+        new Sortable(railListEl, {
             animation: 150,
             ghostClass: 'sortable-ghost',
+            handle: '.entry',
             onEnd: async () => {
-                const items = Array.from(railListEl.children);
                 const batch = writeBatch(db);
-                // Re-calculate timestamps based on visual order to maintain sort
                 const now = Date.now();
-                items.forEach((item, index) => {
-                    const id = item.getAttribute('data-id');
-                    const docRef = doc(db, "rail", id);
-                    batch.update(docRef, { time: now + index });
+                Array.from(railListEl.children).forEach((item, index) => {
+                    batch.update(doc(db, "rail", item.getAttribute('data-id')), { time: now + index });
                 });
                 await batch.commit();
             }
         });
 
-        window.joinRail = async () => {
-            const input = document.getElementById('nameInput');
-            if (input.value.trim()) {
-                await addDoc(railRef, { 
-                    name: input.value.trim(), 
-                    time: Date.now(), 
-                    status: "active",
-                    sessionWins: 0
+        async function saveSnapshot() {
+            const data = currentPlayers.map(p => ({ name: p.name, time: p.time, sessionWins: p.sessionWins || 0 }));
+            await addDoc(snapshotsRef, { state: data, timestamp: serverTimestamp() });
+        }
+
+        window.undoLastMatch = async () => {
+            const q = query(snapshotsRef, orderBy("timestamp", "desc"), limit(1));
+            const snap = await getDocs(q);
+            if (snap.empty) return alert("No history found.");
+
+            if (confirm("Revert rail to the previous state?")) {
+                const batch = writeBatch(db);
+                // Clear current active rail
+                currentPlayers.forEach(p => batch.update(doc(db, "rail", p.id), { status: "undone" }));
+                // Restore from snapshot
+                const previousState = snap.docs[0].data().state;
+                previousState.forEach(p => {
+                    const newRef = doc(railRef);
+                    batch.set(newRef, { ...p, status: "active" });
                 });
-                input.value = '';
+                await batch.commit();
+                await deleteDoc(snap.docs[0].ref);
             }
         };
 
-        window.editPlayerName = async (id, oldName) => {
-            const newName = prompt("Edit player name:", oldName);
-            if (newName && newName !== oldName) {
-                await updateDoc(doc(db, "rail", id), { name: newName.trim() });
-            }
-        };
-
-        window.removeFromRail = async (id) => {
-            if (confirm("Remove player from the active queue?")) {
-                await updateDoc(doc(db, "rail", id), { status: "removed" });
+        window.joinRail = async () => {
+            const val = document.getElementById('nameInput').value.trim();
+            if (val) {
+                await addDoc(railRef, { name: val, time: Date.now(), status: "active", sessionWins: 0 });
+                document.getElementById('nameInput').value = '';
             }
         };
 
         window.recordWin = async (winner) => {
             if (currentPlayers.length < 2) return;
-            const winnerObj = winner === 'king' ? currentPlayers[0] : currentPlayers[1];
-            const loserObj = winner === 'king' ? currentPlayers[1] : currentPlayers[0];
+            await saveSnapshot(); // Save state BEFORE changes
+            
+            const winIdx = winner === 'king' ? 0 : 1;
+            const loseIdx = winner === 'king' ? 1 : 0;
+            const winnerObj = currentPlayers[winIdx];
+            const loserObj = currentPlayers[loseIdx];
 
             try {
-                await addDoc(logsRef, { timestamp: Date.now(), winnerName: winnerObj.name, loserName: loserObj.name });
-                
-                // Update Leaderboard
+                // Update Win Counts
                 const q = query(leadersRef, where("name", "==", winnerObj.name));
-                const snap = await getDocs(q);
-                if (snap.empty) await addDoc(leadersRef, { name: winnerObj.name, wins: 1, streaks: 0 });
-                else await updateDoc(snap.docs[0].ref, { wins: increment(1) });
+                const lSnap = await getDocs(q);
+                if (lSnap.empty) await addDoc(leadersRef, { name: winnerObj.name, wins: 1, streaks: 0 });
+                else await updateDoc(lSnap.docs[0].ref, { wins: increment(1) });
 
                 // Cycle Loser
                 await updateDoc(doc(db, "rail", loserObj.id), { status: "lost" });
                 await addDoc(railRef, { name: loserObj.name, time: Date.now(), status: "active", sessionWins: 0 });
 
-                // Handle Streak
+                // Streak Logic
                 let newStreak = (winner === 'king' ? (winnerObj.sessionWins || 0) : 0) + 1;
                 if (newStreak >= 5) {
-                    const lq = query(leadersRef, where("name", "==", winnerObj.name));
-                    const lSnap = await getDocs(lq);
-                    if (!lSnap.empty) await updateDoc(lSnap.docs[0].ref, { streaks: increment(1) });
-                    
-                    alert(`${winnerObj.name} hit 5 wins! 🍺 Moving to back.`);
-                    await updateDoc(doc(db, "rail", winnerObj.id), { status: "completed_streak" });
-                    await addDoc(railRef, { name: winnerObj.name, time: Date.now(), status: "active", sessionWins: 0 });
+                    const q2 = query(leadersRef, where("name", "==", winnerObj.name));
+                    const lSnap2 = await getDocs(q2);
+                    if (!lSnap2.empty) await updateDoc(lSnap2.docs[0].ref, { streaks: increment(1) });
+                    await updateDoc(doc(db, "rail", winnerObj.id), { status: "rotated" });
+                    await addDoc(railRef, { name: winnerObj.name, time: Date.now() + 10, status: "active", sessionWins: 0 });
+                    alert(`${winnerObj.name} hit 5 wins! 🍺 Rotating to back.`);
                 } else {
                     await updateDoc(doc(db, "rail", winnerObj.id), { sessionWins: newStreak });
                 }
-            } catch (e) { alert(e.message); }
+            } catch (e) { console.error(e); }
         };
 
         onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
-            currentPlayers = snap.docs
-                .map(d => ({ id: d.id, ...d.data() }))
-                .filter(p => p.status === "active");
-
+            currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
             document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
             document.getElementById('kingStreak').innerText = currentPlayers[0] ? `(${currentPlayers[0].sessionWins || 0}/5)` : "";
             document.getElementById('chalName').innerText = currentPlayers[1]?.name || "---";
             
-            // Render the rest of the rail
-            const waitlist = currentPlayers.slice(2);
-            railListEl.innerHTML = waitlist.map((p, i) => `
+            railListEl.innerHTML = currentPlayers.slice(2).map((p, i) => `
                 <div class="entry" data-id="${p.id}">
                     <span>${i+3}. ${p.name}</span>
                     <div class="entry-actions">
@@ -204,36 +202,34 @@
                         <button class="btn-small remove-btn" onclick="removeFromRail('${p.id}')">REMOVE</button>
                     </div>
                 </div>
-            `).join('') || '<div style="opacity:0.3; font-size:12px; padding:10px;">Rail is empty.</div>';
+            `).join('') || '<div style="opacity:0.3; padding:10px;">Rail is empty.</div>';
         });
 
         onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
-            document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map((d, index) => {
+            document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map((d, i) => {
                 const data = d.data();
-                return `
-                <div class="entry" style="border-left: 4px solid var(--accent); cursor: default;">
-                    <span>
-                        ${index === 0 ? '👑 ' : ''}${data.name} 
-                        ${data.streaks > 0 ? '🍺'.repeat(data.streaks) : ''}
-                    </span>
+                return `<div class="entry" style="border-left: 4px solid var(--accent); cursor: default;">
+                    <span>${i === 0 ? '👑 ' : ''}${data.name} ${data.streaks > 0 ? '🍺'.repeat(data.streaks) : ''}</span>
                     <span style="color:var(--accent); font-weight:bold;">${data.wins} Wins</span>
-                </div>
-            `}).join('');
+                </div>`
+            }).join('');
         });
 
-        window.undoLastMatch = async () => {
-            if (!confirm("Delete last match log? (Rail must be adjusted manually)")) return;
-            const q = query(logsRef, orderBy("timestamp", "desc"), limit(1));
-            const snap = await getDocs(q);
-            if (!snap.empty) await deleteDoc(snap.docs[0].ref);
+        window.editPlayerName = async (id, old) => {
+            const n = prompt("New name:", old);
+            if (n && n !== old) await updateDoc(doc(db, "rail", id), { name: n.trim() });
+        };
+
+        window.removeFromRail = async (id) => {
+            if (confirm("Remove?")) await updateDoc(doc(db, "rail", id), { status: "removed" });
         };
 
         window.forfeitDelay = async () => {
             if (currentPlayers.length < 2) return;
-            const choice = prompt("Forfeit: 1 (KING) or 2 (CHALLENGER)");
-            if (choice === '1' || choice === '2') {
-                const p = currentPlayers[parseInt(choice)-1];
-                await updateDoc(doc(db, "rail", p.id), { status: "forfeited" });
+            const c = prompt("Forfeit: 1 (KING) or 2 (CHAL)");
+            if (c === '1' || c === '2') {
+                const p = currentPlayers[parseInt(c)-1];
+                await updateDoc(doc(db, "rail", p.id), { status: "forfeit" });
                 await addDoc(railRef, { name: p.name, time: Date.now(), status: "active", sessionWins: 0 });
             }
         };
