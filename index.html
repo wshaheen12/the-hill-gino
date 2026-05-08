@@ -47,7 +47,7 @@
     </div>
 
     <div class="lists-container">
-        <h3>Top Players (Monthly)</h3>
+        <h3>June Leaderboard</h3>
         <div id="leaderboardList"></div>
         
         <h3>The Rail</h3>
@@ -123,16 +123,13 @@
             const loserObj = (winner === 'king') ? currentPlayers[1] : currentPlayers[0];
 
             try {
-                // 1. Update Leaderboard
                 const q = query(leadersRef, where("name", "==", winnerName));
                 const snap = await getDocs(q);
                 if (snap.empty) await addDoc(leadersRef, { name: winnerName, wins: 1 });
                 else await updateDoc(snap.docs[0].ref, { wins: increment(1) });
                 
-                // 2. Archive the old "losing" rail entry
                 await updateDoc(doc(db, "rail", loserObj.id), { status: "lost" });
 
-                // 3. AUTO-RELIST: Create a fresh entry for the loser at the bottom
                 await addDoc(railRef, { 
                     name: loserObj.name, 
                     time: Date.now(), 
