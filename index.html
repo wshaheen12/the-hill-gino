@@ -136,14 +136,20 @@
         window.joinRail = async () => {
             const input = document.getElementById('nameInput');
             if (input.value.trim()) {
-                await addDoc(railRef, { name: input.value.trim(), time: Date.now() });
+                // Now includes a 'status' field
+                await addDoc(railRef, { 
+                    name: input.value.trim(), 
+                    time: Date.now(), 
+                    status: "active" 
+                });
                 input.value = '';
             }
         };
 
         window.removeFromRail = async (id) => {
-            if (confirm("Remove player from rail?")) {
-                await deleteDoc(doc(db, "rail", id));
+            if (confirm("Remove player from the active queue?")) {
+                // CHANGED: Update status instead of deleting the document
+                await updateDoc(doc(db, "rail", id), { status: "removed" });
             }
         };
 
@@ -155,8 +161,9 @@
                 const offender = currentPlayers[index];
                 try {
                     await setDoc(statusRef, { isTransitioning: false });
-                    await deleteDoc(doc(db, "rail", offender.id));
-                    await addDoc(railRef, { name: offender.name, time: Date.now() });
+                    // Archive old entry and create new one at the back
+                    await updateDoc(doc(db, "rail", offender.id), { status: "forfeited" });
+                    await addDoc(railRef, { name: offender.name, time: Date.now(), status: "active" });
                 } catch (e) { alert(e.message); }
             }
         };
@@ -171,16 +178,20 @@
                 const snap = await getDocs(q);
                 if (snap.empty) await addDoc(leadersRef, { name: winnerName, wins: 1 });
                 else await updateDoc(snap.docs[0].ref, { wins: increment(1) });
-                await deleteDoc(doc(db, "rail", loserId));
+                
+                // Archive loser instead of deleting
+                await updateDoc(doc(db, "rail", loserId), { status: "lost" });
             } catch (e) { alert(e.message); }
         };
 
-        onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
+        // FIXED QUERY: Only fetch players with status "active"
+        const railQuery = query(railRef, where("status", "==", "active"), orderBy("time", "asc"));
+
+        onSnapshot(railQuery, (snap) => {
             currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
             document.getElementById('chalName').innerText = currentPlayers[1]?.name || "---";
             
-            // FIX: Only show players from index 2 onwards (the waitlist)
             const waitlist = currentPlayers.slice(2);
             document.getElementById('railList').innerHTML = waitlist.map((p, i) => `
                 <div class="entry">
