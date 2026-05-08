@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Hill - Gino and Carlo</title>
     <style>
-        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; }
-        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding-bottom: 180px; }
+        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding-bottom: 200px; }
         .prize-banner { background: var(--accent); color: black; font-weight: bold; padding: 12px; font-size: 14px; text-transform: uppercase; position: sticky; top: 0; z-index: 10; }
         .header { padding: 15px; border-bottom: 1px solid #333; }
         
+        /* Timer Styles */
+        .timer-container { margin: 10px 15px 0; padding: 10px; background: #111; border-radius: 8px; border: 1px solid #333; }
+        #timer-display { font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); }
+        .timer-low { color: var(--warning) !important; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
         .match-box { background: var(--card); margin: 15px; padding: 25px; border-radius: 15px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         .player { flex: 1; }
         .player-name { font-size: 28px; font-weight: 800; color: var(--accent); display: block; margin-top: 5px; }
@@ -38,7 +44,13 @@
     <div class="prize-banner">🏆 Monthly Prize: $200 Bar Tab</div>
     <div class="header">
         <h1>GINO AND CARLO</h1>
-        <div style="font-size: 10px; opacity: 0.5;"><span id="status-dot"></span> Connection Status</div>
+        <div style="font-size: 10px; opacity: 0.5;"><span id="status-dot"></span> System Connected</div>
+    </div>
+
+    <!-- Timer UI -->
+    <div class="timer-container">
+        <div style="font-size: 10px; opacity: 0.6; margin-bottom: 5px;">MATCH CLOCK</div>
+        <div id="timer-display">03:00</div>
     </div>
     
     <div class="match-box">
@@ -68,7 +80,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, deleteDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, deleteDoc, getDocs, where, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
@@ -83,14 +95,42 @@
         const db = getFirestore(app);
         const railRef = collection(db, "rail");
         const leadersRef = collection(db, "leaderboard");
+        const timerDocRef = doc(db, "status", "matchTimer");
 
         let currentPlayers = [];
+        let timerInterval;
 
-        // Connection Status Indicator
-        onSnapshot(doc(db, ".info/connected"), () => {
-            document.getElementById('status-dot').classList.add('online');
-        }, (err) => {
-            document.getElementById('status-dot').classList.remove('online');
+        // Timer Logic
+        const startTimer = (startTime) => {
+            clearInterval(timerInterval);
+            const duration = 3 * 60 * 1000; // 3 minutes
+            
+            timerInterval = setInterval(() => {
+                const now = Date.now();
+                const elapsed = now - startTime;
+                const remaining = Math.max(0, duration - elapsed);
+                
+                const mins = Math.floor(remaining / 60000);
+                const secs = Math.floor((remaining % 60000) / 1000);
+                const display = document.getElementById('timer-display');
+                
+                display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                
+                if (remaining < 30000) display.classList.add('timer-low');
+                else display.classList.remove('timer-low');
+                
+                if (remaining === 0) {
+                    display.innerText = "TIME'S UP!";
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        };
+
+        // Sync Timer across all devices
+        onSnapshot(timerDocRef, (snap) => {
+            if (snap.exists()) {
+                startTimer(snap.data().startTime);
+            }
         });
 
         window.joinRail = async () => {
@@ -106,7 +146,7 @@
 
         window.recordWin = async (winner) => {
             if (currentPlayers.length < 2) {
-                alert("Need a King and a Challenger to record a win!");
+                alert("Need a King and a Challenger!");
                 return;
             }
             
@@ -116,6 +156,10 @@
             const loserId = (winner === 'king') ? challenger.id : king.id;
 
             try {
+                // Reset Timer for the next match
+                await setDoc(timerDocRef, { startTime: Date.now() });
+
+                // Update Leaderboard
                 const q = query(leadersRef, where("name", "==", winnerName));
                 const snap = await getDocs(q);
                 if (snap.empty) {
@@ -123,10 +167,19 @@
                 } else {
                     await updateDoc(snap.docs[0].ref, { wins: increment(1) });
                 }
+                
+                // Remove Loser
                 await deleteDoc(doc(db, "rail", loserId));
-            } catch (e) { alert("Win record failed: " + e.message); }
+            } catch (e) { alert("Action failed: " + e.message); }
         };
 
+        // Connection Dot
+        onSnapshot(doc(db, ".info/connected"), (snap) => {
+            if (snap.data()?.connected) document.getElementById('status-dot').classList.add('online');
+            else document.getElementById('status-dot').classList.remove('online');
+        });
+
+        // Lists Sync
         onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
             currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
