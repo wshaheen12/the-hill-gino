@@ -18,8 +18,11 @@
         .rail-entry::before { content: '↕️'; margin-right: 12px; opacity: 0.5; }
         .leader-entry { background: #111; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
         .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+        .input-group { display: flex; gap: 8px; }
+        input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
         .btn-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         button { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-join { background: var(--accent); color: black; }
         .btn-undo { background: #333; color: var(--warning); font-size: 11px; }
         .btn-king { background: #2563eb; color: white; }
         .btn-chal { background: #7c3aed; color: white; }
@@ -47,6 +50,10 @@
         <div id="railList"></div>
     </div>
     <div class="controls">
+        <div class="input-group">
+            <input type="text" id="nameInput" placeholder="First & Last Name">
+            <button class="btn-join" onclick="joinRail()">JOIN</button>
+        </div>
         <div class="btn-row">
             <button class="btn-undo" onclick="undoLastMatch()">UNDO LAST</button>
             <button class="btn-king" onclick="recordWin('king')">KING WON</button>
@@ -141,6 +148,18 @@
                 const p = currentPlayers[parseInt(choice) - 1];
                 await updateDoc(doc(db, "rail", p.id), { status: "skipped" });
                 await addDoc(railRef, { name: p.name, time: Date.now(), status: "active", sessionWins: 0 });
+            }
+        };
+
+        window.joinRail = async () => {
+            const v = document.getElementById('nameInput').value.trim();
+            if (v.split(' ').length < 2) {
+                alert("Entry required: Please provide both First and Last name.");
+                return;
+            }
+            if (v) { 
+                await addDoc(railRef, { name: v, time: Date.now(), status: "active", sessionWins: 0 }); 
+                document.getElementById('nameInput').value = ''; 
             }
         };
 
