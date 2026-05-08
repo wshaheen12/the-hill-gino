@@ -8,9 +8,11 @@
         :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --info: #3b82f6; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; }
         
-        .prize-banner { background: var(--accent); color: black; font-weight: bold; padding: 10px; font-size: 13px; text-transform: uppercase; position: sticky; top: 0; z-index: 100; }
+        /* Event Banners */
+        .event-banner { background: #fff; color: #000; font-weight: 900; padding: 12px; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
+        .prize-banner { background: var(--accent); color: black; font-weight: bold; padding: 8px; font-size: 12px; text-transform: uppercase; position: sticky; top: 0; z-index: 100; }
         
-        .top-nav { position: sticky; top: 38px; background: var(--bg); z-index: 90; padding-bottom: 10px; border-bottom: 1px solid #333; }
+        .top-nav { position: sticky; top: 32px; background: var(--bg); z-index: 90; padding-bottom: 10px; border-bottom: 1px solid #333; }
         
         .timer-container { margin: 10px 15px; padding: 10px; background: #111; border-radius: 8px; border: 1px solid #333; }
         #timer-display { font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; color: #555; }
@@ -21,7 +23,6 @@
         .match-box { background: var(--card); margin: 10px 15px; padding: 15px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
         .player-name { font-size: 22px; font-weight: 800; color: var(--accent); display: block; }
         
-        /* Scrollable Area with explicit padding for the fixed footer */
         .lists-container { padding: 0 20px 240px; text-align: left; max-width: 500px; margin: auto; }
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 14px; text-transform: uppercase; opacity: 0.6; margin-top: 25px; }
         
@@ -35,12 +36,13 @@
         button { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
         
         .btn-join { background: var(--accent); color: black; }
-        .btn-forfeit { background: #444; color: white; font-size: 11px; }
+        .btn-forfeit { background: #444; color: white; font-size: 10px; line-height: 1.2; }
         .btn-king { background: #2563eb; color: white; text-transform: uppercase; font-size: 11px; }
         .btn-chal { background: #7c3aed; color: white; text-transform: uppercase; font-size: 11px; }
     </style>
 </head>
 <body>
+    <div class="event-banner">Gino & Carlo - King of the Hill - June 2026</div>
     <div class="prize-banner">🏆 Monthly Prize: $200 Bar Tab</div>
     
     <div class="top-nav">
@@ -70,7 +72,7 @@
             <button class="btn-join" onclick="joinRail()">JOIN</button>
         </div>
         <div class="btn-row">
-            <button class="btn-forfeit" onclick="forfeitDelay()">FORFEIT (DELAY)</button>
+            <button class="btn-forfeit" onclick="forfeitDelay()">FORFEIT<br>(DELAY)</button>
             <button class="btn-king" onclick="recordWin('king')">KING WON</button>
             <button class="btn-chal" onclick="recordWin('chal')">CHAL WON</button>
         </div>
@@ -148,18 +150,13 @@
 
         window.forfeitDelay = async () => {
             if (currentPlayers.length < 2) return;
-            
             const choice = prompt("Who is delaying? Type '1' for KING or '2' for CHALLENGER:");
             if (choice === '1' || choice === '2') {
                 const index = parseInt(choice) - 1;
                 const offender = currentPlayers[index];
-                
                 try {
-                    // 1. End transition timer visually
                     await setDoc(statusRef, { isTransitioning: false });
-                    // 2. Remove from current spot
                     await deleteDoc(doc(db, "rail", offender.id));
-                    // 3. Add back to the end of the line
                     await addDoc(railRef, { name: offender.name, time: Date.now() });
                 } catch (e) { alert(e.message); }
             }
@@ -169,7 +166,6 @@
             if (currentPlayers.length < 2) return;
             const winnerName = (winner === 'king') ? currentPlayers[0].name : currentPlayers[1].name;
             const loserId = (winner === 'king') ? currentPlayers[1].id : currentPlayers[0].id;
-
             try {
                 await setDoc(statusRef, { startTime: Date.now(), isTransitioning: true });
                 const q = query(leadersRef, where("name", "==", winnerName));
@@ -184,7 +180,6 @@
             currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
             document.getElementById('chalName').innerText = currentPlayers[1]?.name || "---";
-            
             document.getElementById('railList').innerHTML = currentPlayers.map((p, i) => `
                 <div class="entry">
                     <span>${i+1}. ${p.name}</span>
