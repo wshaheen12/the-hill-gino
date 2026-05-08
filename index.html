@@ -15,11 +15,9 @@
         .lists-container { padding: 0 20px 240px; text-align: left; max-width: 500px; margin: auto; }
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 12px; text-transform: uppercase; opacity: 0.6; margin-top: 20px; }
         
-        /* Rail Entry with Drag Handle */
         .rail-entry { background: #1a1a1a; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; cursor: grab; }
         .rail-entry::before { content: '↕️'; margin-right: 12px; opacity: 0.5; }
         
-        /* Leaderboard Entry - NO EMOJI */
         .leader-entry { background: #111; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
 
         .entry-actions { display: flex; gap: 8px; }
@@ -36,6 +34,7 @@
         .btn-undo { background: #333; color: #ff4444; font-size: 11px; }
         .btn-king { background: #2563eb; color: white; }
         .btn-chal { background: #7c3aed; color: white; }
+        .btn-skip { background: #444; color: white; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -72,6 +71,7 @@
             <button class="btn-king" onclick="recordWin('king')">KING WON</button>
             <button class="btn-chal" onclick="recordWin('chal')">CHAL WON</button>
         </div>
+        <button class="btn-skip" onclick="skipPlayer()">SKIP (MOVE TO END)</button>
     </div>
 
     <script type="module">
@@ -108,7 +108,6 @@
             }
         });
 
-        // CRITICAL: Capture the exact state of the Rail AND Leaderboard counts
         async function saveGlobalSnapshot() {
             const railState = currentPlayers.map(p => ({ name: p.name, time: p.time, sessionWins: p.sessionWins || 0 }));
             const leaderState = leaderboardData.map(l => ({ name: l.name, wins: l.wins, streaks: l.streaks || 0 }));
@@ -120,15 +119,13 @@
             const snap = await getDocs(q);
             if (snap.empty) return alert("No history found.");
 
-            if (confirm("REVERT ALL DATA? This will reset Leaderboard counts and the Rail to the previous state.")) {
+            if (confirm("REVERT ALL DATA?")) {
                 const batch = writeBatch(db);
                 const data = snap.docs[0].data();
 
-                // 1. Reset Rail
                 currentPlayers.forEach(p => batch.update(doc(db, "rail", p.id), { status: "undone" }));
                 data.rail.forEach(p => batch.set(doc(railRef), { ...p, status: "active" }));
 
-                // 2. Reset Leaderboard
                 const currentLeaders = await getDocs(leadersRef);
                 currentLeaders.forEach(d => batch.delete(d.ref));
                 data.leaders.forEach(l => batch.set(doc(leadersRef), l));
@@ -165,7 +162,17 @@
             }
         };
 
-        // Real-time Listeners
+        window.skipPlayer = async () => {
+            if (currentPlayers.length < 2) return;
+            const choice = prompt("Enter 1 to skip KING or 2 to skip CHALLENGER:");
+            if (choice === '1' || choice === '2') {
+                await saveGlobalSnapshot(); // Save state so skip can be undone
+                const p = currentPlayers[parseInt(choice) - 1];
+                await updateDoc(doc(db, "rail", p.id), { status: "skipped" });
+                await addDoc(railRef, { name: p.name, time: Date.now(), status: "active", sessionWins: 0 });
+            }
+        };
+
         onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
             currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
             document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
