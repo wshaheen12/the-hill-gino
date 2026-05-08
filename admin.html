@@ -3,34 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin - The Hill</title>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <title>The Hill - Gino and Carlo</title>
     <style>
-        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --edit: #f59e0b; }
+        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; }
         body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; }
         .event-banner { background: #fff; color: #000; font-weight: 900; padding: 12px; font-size: 16px; text-transform: uppercase; }
         .top-nav { position: sticky; top: 0; background: var(--bg); z-index: 90; padding: 10px 0; border-bottom: 1px solid #333; }
         .match-box { background: var(--card); margin: 10px 15px; padding: 20px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
         .player-name { font-size: 24px; font-weight: 800; color: var(--accent); display: block; }
-        .lists-container { padding: 0 20px 240px; text-align: left; max-width: 500px; margin: auto; }
+        .lists-container { padding: 0 20px 180px; text-align: left; max-width: 500px; margin: auto; }
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 12px; text-transform: uppercase; opacity: 0.6; margin-top: 20px; }
-        .rail-entry { background: #1a1a1a; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; cursor: grab; }
-        .rail-entry::before { content: '↕️'; margin-right: 12px; opacity: 0.5; }
-        .leader-entry { background: #111; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
-        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+        .entry { background: #1a1a1a; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; }
         .input-group { display: flex; gap: 8px; }
         input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        button { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-join { background: var(--accent); color: black; }
-        .btn-undo { background: #333; color: var(--warning); font-size: 11px; }
-        .btn-king { background: #2563eb; color: white; }
-        .btn-chal { background: #7c3aed; color: white; }
-        .btn-skip { background: #444; color: white; font-size: 12px; }
+        button { padding: 12px 24px; border-radius: 6px; border: none; font-weight: bold; background: var(--accent); color: black; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="event-banner">ADMIN: GINO & CARLO</div>
+    <div class="event-banner">Gino & Carlo - King of the Hill</div>
     <div class="top-nav">
         <div class="match-box">
             <div class="player">
@@ -44,27 +35,21 @@
         </div>
     </div>
     <div class="lists-container">
-        <h3>June Leaderboard</h3>
+        <h3>Live Leaderboard</h3>
         <div id="leaderboardList"></div>
-        <h3>The Rail (Drag ↕️ to Reorder)</h3>
+        <h3>The Rail</h3>
         <div id="railList"></div>
     </div>
     <div class="controls">
         <div class="input-group">
-            <input type="text" id="nameInput" placeholder="First & Last Name">
-            <button class="btn-join" onclick="joinRail()">JOIN</button>
+            <input type="text" id="nameInput" placeholder="First & Last Name (Req)">
+            <button onclick="joinRail()">JOIN RAIL</button>
         </div>
-        <div class="btn-row">
-            <button class="btn-undo" onclick="undoLastMatch()">UNDO LAST</button>
-            <button class="btn-king" onclick="recordWin('king')">KING WON</button>
-            <button class="btn-chal" onclick="recordWin('chal')">CHAL WON</button>
-        </div>
-        <button class="btn-skip" onclick="skipPlayer()">SKIP (MOVE TO END)</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, getDocs, where, deleteDoc, limit, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
@@ -79,106 +64,33 @@
         const db = getFirestore(app);
         const railRef = collection(db, "rail");
         const leadersRef = collection(db, "leaderboard");
-        const snapshotsRef = collection(db, "snapshots");
-
-        let currentPlayers = [];
-        let leaderboardData = [];
-
-        new Sortable(document.getElementById('railList'), {
-            animation: 150,
-            onEnd: async () => {
-                const batch = writeBatch(db);
-                const now = Date.now();
-                Array.from(document.getElementById('railList').children).forEach((item, index) => {
-                    batch.update(doc(db, "rail", item.getAttribute('data-id')), { time: now + index });
-                });
-                await batch.commit();
-            }
-        });
-
-        async function saveGlobalSnapshot() {
-            const railState = currentPlayers.map(p => ({ name: p.name, time: p.time, sessionWins: p.sessionWins || 0 }));
-            const leaderState = leaderboardData.map(l => ({ name: l.name, wins: l.wins, streaks: l.streaks || 0 }));
-            await addDoc(snapshotsRef, { rail: railState, leaders: leaderState, timestamp: serverTimestamp() });
-        }
-
-        window.undoLastMatch = async () => {
-            const q = query(snapshotsRef, orderBy("timestamp", "desc"), limit(1));
-            const snap = await getDocs(q);
-            if (snap.empty) return alert("No history found.");
-            if (confirm("REVERT ALL DATA?")) {
-                const batch = writeBatch(db);
-                const data = snap.docs[0].data();
-                currentPlayers.forEach(p => batch.update(doc(db, "rail", p.id), { status: "undone" }));
-                data.rail.forEach(p => batch.set(doc(railRef), { ...p, status: "active" }));
-                const currentLeaders = await getDocs(leadersRef);
-                currentLeaders.forEach(d => batch.delete(d.ref));
-                data.leaders.forEach(l => batch.set(doc(leadersRef), l));
-                await batch.commit();
-                await deleteDoc(snap.docs[0].ref);
-            }
-        };
-
-        window.recordWin = async (winner) => {
-            if (currentPlayers.length < 2) return;
-            await saveGlobalSnapshot();
-            const winnerObj = winner === 'king' ? currentPlayers[0] : currentPlayers[1];
-            const loserObj = winner === 'king' ? currentPlayers[1] : currentPlayers[0];
-            const q = query(leadersRef, where("name", "==", winnerObj.name));
-            const lSnap = await getDocs(q);
-            if (lSnap.empty) await addDoc(leadersRef, { name: winnerObj.name, wins: 1, streaks: 0 });
-            else await updateDoc(lSnap.docs[0].ref, { wins: increment(1) });
-            await updateDoc(doc(db, "rail", loserObj.id), { status: "lost" });
-            await addDoc(railRef, { name: loserObj.name, time: Date.now(), status: "active", sessionWins: 0 });
-            let newStreak = (winner === 'king' ? (winnerObj.sessionWins || 0) : 0) + 1;
-            if (newStreak >= 5) {
-                const q2 = query(leadersRef, where("name", "==", winnerObj.name));
-                const lSnap2 = await getDocs(q2);
-                await updateDoc(lSnap2.docs[0].ref, { streaks: increment(1) });
-                await updateDoc(doc(db, "rail", winnerObj.id), { status: "rotated" });
-                await addDoc(railRef, { name: winnerObj.name, time: Date.now() + 10, status: "active", sessionWins: 0 });
-            } else { await updateDoc(doc(db, "rail", winnerObj.id), { sessionWins: newStreak }); }
-        };
-
-        window.skipPlayer = async () => {
-            if (currentPlayers.length < 2) return;
-            const choice = prompt("Skip 1 (KING) or 2 (CHALLENGER)?");
-            if (choice === '1' || choice === '2') {
-                await saveGlobalSnapshot();
-                const p = currentPlayers[parseInt(choice) - 1];
-                await updateDoc(doc(db, "rail", p.id), { status: "skipped" });
-                await addDoc(railRef, { name: p.name, time: Date.now(), status: "active", sessionWins: 0 });
-            }
-        };
 
         window.joinRail = async () => {
             const v = document.getElementById('nameInput').value.trim();
             if (v.split(' ').length < 2) {
-                alert("Entry required: Please provide both First and Last name.");
+                alert("Please enter both your First and Last name.");
                 return;
             }
             if (v) { 
                 await addDoc(railRef, { name: v, time: Date.now(), status: "active", sessionWins: 0 }); 
-                document.getElementById('nameInput').value = ''; 
+                document.getElementById('nameInput').value = '';
+                alert("You're on the rail!");
             }
         };
 
         onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
-            currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
-            document.getElementById('kingName').innerText = currentPlayers[0]?.name || "---";
-            document.getElementById('kingStreak').innerText = currentPlayers[0] ? `(${currentPlayers[0].sessionWins || 0}/5)` : "";
-            document.getElementById('chalName').innerText = currentPlayers[1]?.name || "---";
-            document.getElementById('railList').innerHTML = currentPlayers.slice(2).map((p, i) => `
-                <div class="rail-entry" data-id="${p.id}">
-                    <span>${i+3}. ${p.name}</span>
-                </div>`).join('');
+            const players = snap.docs.map(d => d.data()).filter(p => p.status === "active");
+            document.getElementById('kingName').innerText = players[0]?.name || "---";
+            document.getElementById('kingStreak').innerText = players[0] ? `(${players[0].sessionWins || 0}/5)` : "";
+            document.getElementById('chalName').innerText = players[1]?.name || "---";
+            document.getElementById('railList').innerHTML = players.slice(2).map((p, i) => `
+                <div class="entry"><span>${i+3}. ${p.name}</span></div>`).join('');
         });
 
         onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
-            leaderboardData = snap.docs.map(d => d.data());
             document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map((d, i) => {
                 const data = d.data();
-                return `<div class="leader-entry">
+                return `<div class="entry" style="border-left: 4px solid var(--accent);">
                     <span>${i === 0 ? '👑 ' : ''}${data.name} ${data.streaks > 0 ? '🔥' : ''}</span>
                     <span style="color:var(--accent); font-weight:bold;">${data.wins} Wins</span>
                 </div>`
