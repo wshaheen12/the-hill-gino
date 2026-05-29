@@ -64,8 +64,8 @@
         <div class="qr-column">
             <div class="qr-sticky-card">
                 <div class="qr-large-wrapper">
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABFwEBoAAAABlBMVEUAAAD///+l2Z/dAAAAM0lEQVR42u3XwQkAIAwDwDF3dP9ET+gL96gIhLwmsS17tSgKqqqqqqqqqqqqqqqqqqqq6gMe9scC64mH0gAAAABJRU5ErkJggg==" alt="App QR Code">
-</div>
+                    <img src="ginos-qr.jpg.png" alt="App QR Code">
+                </div>
                 <h4>Scan to Join</h4>
                 <p>Ready to challenge? Scan this screen to drop your name directly into the active digital lineup.</p>
             </div>
@@ -112,74 +112,5 @@
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
             const dLon = (lon2 - lon1) * (Math.PI / 180);
-            const a = 
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
-
-        window.joinRail = async () => {
-            const v = document.getElementById('nameInput').value.trim();
-            if (v.split(' ').length < 2) {
-                alert("Please enter both your First and Last name.");
-                return;
-            }
-
-            if (!navigator.geolocation) {
-                alert("Location checking is not supported by your device browser.");
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                const distance = getDistanceInKm(
-                    VENUE_GEO.lat,
-                    VENUE_GEO.lng,
-                    position.coords.latitude,
-                    position.coords.longitude
-                );
-
-                if (distance <= VENUE_GEO.radiusKm) {
-                    if (v) { 
-                        const sessionToken = getOrCreateSession();
-                        await addDoc(railRef, { 
-                            name: v, 
-                            time: Date.now(), 
-                            status: "active", 
-                            sessionWins: 0,
-                            deviceId: sessionToken 
-                        }); 
-                        document.getElementById('nameInput').value = '';
-                        alert("You're on the rail!");
-                    }
-                } else {
-                    alert("Verification Failed: You must be physically present inside Gino & Carlo to join this rail.");
-                }
-            }, (error) => {
-                alert("Access Denied: Location verification permissions are required to claim a spot on the rail.");
-            }, { enableHighAccuracy: true, timeout: 5000 });
-        };
-
-        onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
-            const players = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
-            document.getElementById('kingName').innerText = players[0]?.name || "---";
-            document.getElementById('kingStreak').innerText = players[0] ? `(${players[0].sessionWins || 0}/5)` : "";
-            document.getElementById('chalName').innerText = players[1]?.name || "---";
-            document.getElementById('railList').innerHTML = players.slice(2).map((p, i) => `
-                <div class="entry">
-                    <span>${i+3}. ${p.name}</span>
-                </div>`).join('');
-        });
-
-        onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
-            document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map((d, i) => {
-                const data = d.data();
-                return `<div class="entry" style="border-left: 4px solid var(--accent);">
-                    <span>${i === 0 ? '👑 ' : ''}${data.name} ${data.streaks > 0 ? '🔥' : ''}</span>
-                    <span style="color:var(--accent); font-weight:bold;">${data.wins} Wins</span>
-                </div>`
-            }).join('');
-        });
-    </script>
-</body>
-</html>
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R
