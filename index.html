@@ -12,9 +12,17 @@
         .match-box { background: var(--card); margin: 10px 15px; padding: 20px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
         .player-name { font-size: 24px; font-weight: 800; color: var(--accent); display: block; }
         .lists-container { padding: 0 20px 180px; text-align: left; max-width: 500px; margin: auto; }
+        
+        /* Non-Intrusive QR Code Card Setup */
+        .qr-card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 15px; margin-top: 15px; display: flex; align-items: center; gap: 15px; }
+        .qr-wrapper { background: white; padding: 6px; border-radius: 6px; width: 75px; height: 75px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .qr-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+        .qr-text h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: bold; }
+        .qr-text p { margin: 0; font-size: 12px; opacity: 0.6; line-height: 1.3; }
+
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 12px; text-transform: uppercase; opacity: 0.6; margin-top: 20px; }
         .entry { background: #1a1a1a; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; }
-        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; z-index: 100; }
         .input-group { display: flex; gap: 8px; }
         input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
         button { padding: 12px 24px; border-radius: 6px; border: none; font-weight: bold; background: var(--accent); color: black; cursor: pointer; }
@@ -35,6 +43,16 @@
         </div>
     </div>
     <div class="lists-container">
+        <div class="qr-card">
+            <div class="qr-wrapper">
+                <img src="KOTH QR GNC.png" alt="Scan QR">
+            </div>
+            <div class="qr-text">
+                <h4>Scan to Challenge</h4>
+                <p>Have an opponent ready? Let them scan this table code to log right into the active digital rail lineup.</p>
+            </div>
+        </div>
+
         <h3>Live Leaderboard</h3>
         <div id="leaderboardList"></div>
         <h3>The Rail</h3>
@@ -65,17 +83,71 @@
         const railRef = collection(db, "rail");
         const leadersRef = collection(db, "leaderboard");
 
+        // Target Venue Location Configuration (Gino & Carlo Coordinates)
+        const VENUE_GEO = { lat: 37.7996, lng: -122.4086, radiusKm: 0.075 };
+
+        // Unique Browser Session Fingerprint Engine
+        function getOrCreateSession() {
+            let token = localStorage.getItem('koth_device_token');
+            if (!token) {
+                token = 'dev_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                localStorage.setItem('koth_device_token', token);
+            }
+            return token;
+        }
+
+        // Haversine Distance Formula
+        function getDistanceInKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * (Math.PI / 180);
+            const dLon = (lon2 - lon1) * (Math.PI / 180);
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
         window.joinRail = async () => {
             const v = document.getElementById('nameInput').value.trim();
             if (v.split(' ').length < 2) {
                 alert("Please enter both your First and Last name.");
                 return;
             }
-            if (v) { 
-                await addDoc(railRef, { name: v, time: Date.now(), status: "active", sessionWins: 0 }); 
-                document.getElementById('nameInput').value = '';
-                alert("You're on the rail!");
+
+            if (!navigator.geolocation) {
+                alert("Location checking is not supported by your device browser.");
+                return;
             }
+
+            // Trigger Geofence verification pipeline
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const distance = getDistanceInKm(
+                    VENUE_GEO.lat,
+                    VENUE_GEO.lng,
+                    position.coords.latitude,
+                    position.coords.longitude
+                );
+
+                if (distance <= VENUE_GEO.radiusKm) {
+                    if (v) { 
+                        const sessionToken = getOrCreateSession();
+                        await addDoc(railRef, { 
+                            name: v, 
+                            time: Date.now(), 
+                            status: "active", 
+                            sessionWins: 0,
+                            deviceId: sessionToken 
+                        }); 
+                        document.getElementById('nameInput').value = '';
+                        alert("You're on the rail!");
+                    }
+                } else {
+                    alert("Verification Failed: You must be physically present inside Gino & Carlo to join this rail.");
+                }
+            }, (error) => {
+                alert("Access Denied: Location verification permissions are required to claim a spot on the rail.");
+            }, { enableHighAccuracy: true, timeout: 5000 });
         };
 
         onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
@@ -101,6 +173,3 @@
     </script>
 </body>
 </html>
-
-
-
