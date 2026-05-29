@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hill - Fahy's Admin Panel</title>
+    <style>
+        :root { --accent: #ef4444; --bg: #0a0a0a; --card: #161616; --success: #22c55e; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; text-align: center; }
+        .admin-box { max-width: 600px; margin: 0 auto 30px auto; background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 20px; text-align: left; }
+        h2 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        .current-match { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #222; }
+        .player-block { flex: 1; }
+        .player-title { font-size: 11px; opacity: 0.5; text-transform: uppercase; }
+        .player-name { font-size: 20px; font-weight: bold; color: #fff; display: block; margin-top: 4px; }
+        .vs-divider { padding: 0 15px; opacity: 0.3; font-weight: bold; }
+        .btn { padding: 10px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-win { background: var(--success); color: black; width: 100%; margin-top: 10px; }
+        .btn-remove { background: var(--accent); color: white; padding: 6px 12px; font-size: 12px; }
+        .rail-item { display: flex; justify-content: space-between; align-items: center; background: #111; padding: 12px; margin-bottom: 6px; border-radius: 8px; border: 1px solid #222; }
+    </style>
+</head>
+<body>
+
+    <h1>Fahy's Arena Control</h1>
+    <p style="opacity: 0.6; margin-bottom: 30px;">Match Management & Queue Control Panel</p>
+
+    <div class="admin-box">
+        <h2>Active Table Match</h2>
+        <div class="current-match">
+            <div class="player-block" id="kingBlock">
+                <span class="player-title">King of the Hill</span>
+                <span id="kingName" class="player-name">---</span>
+                <button class="btn btn-win" onclick="resolveMatch('king')">King Won Match</button>
+            </div>
+            <div class="vs-divider">VS</div>
+            <div class="player-block" id="chalBlock">
+                <span class="player-title">Challenger</span>
+                <span id="chalName" class="player-name">---</span>
+                <button class="btn btn-win" onclick="resolveMatch('challenger')">Challenger Won Match</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-box">
+        <h2>Manage The Rail Lineup</h2>
+        <div id="adminRailList"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, doc, updateDoc, onSnapshot, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
+            authDomain: "the-hill-pilot.firebaseapp.com",
+            projectId: "the-hill-pilot",
+            storageBucket: "the-hill-pilot.firebasestorage.app",
+            messagingSenderId: "965013734125",
+            appId: "1:965013734125:web:bef8fbb9029fb898d742e4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const railRef = collection(db, "rail_fahys");
+        const leadersRef = collection(db, "leaderboard_fahys");
+
+        let activePlayers = [];
+
+        // Real-time sync engine with Fahy's rail dataset
+        onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
+            activePlayers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
+            
+            document.getElementById('kingName').innerText = activePlayers[0]?.name || "---";
+            document.getElementById('chalName').innerText = activePlayers[1]?.name || "---";
+            
+            // Build the queue management panel view
+            document.getElementById('adminRailList').innerHTML = activePlayers.map((p, i) => {
+                let roleLabel = "";
+                if (i === 0) roleLabel = `<span style="color:#22c55e; font-size:12px;">[KING] </span>`;
+                if (i === 1) roleLabel = `<span style="color:#3b82f6; font-size:12px;">[CHALLENGER] </span>`;
+                
+                return `
+                    <div class="rail-item">
+                        <span><strong>${i + 1}.</strong> ${roleLabel}${p.name}</span>
+                        <button class="btn btn-remove" onclick="removePlayer('${p.id}')">Kick</button>
+                    </div>`;
+            }).join('');
+        });
+
+        // Match resolution pipeline execution
+        window.resolveMatch = async (winner) => {
+            if (activePlayers.length < 2) {
+                alert("You need both a King and a Challenger on the table to log a match win.");
+                return;
+            }
+
+            const king = activePlayers[0];
+            const challenger = activePlayers[1];
+
+            if (winner === 'king') {
+                // 1. King wins: increment current run streak counters
+                const currentWins = (king.sessionWins || 0) + 1;
+                
+                // Track historical leaderboard data
+                await incrementLeaderboardWins(king.name);
+
+                if (currentWins >= 5) {
+                    // Maximum run threshold met: retire King down into history, next up takes over empty throne
+                    alert(`${king.name} hit the 5-win run cap! Moving them off the table.`);
+                    await updateDoc(doc(db, "rail_fahys", king.id), { status: "retired", sessionWins: currentWins });
+                } else {
+                    // Update current table streak state
+                    await updateDoc(doc(db, "rail_fahys", king.id), { sessionWins: currentWins });
+                }
+                // Drop the defeated challenger from active status
+                await updateDoc(doc(db, "rail_fahys", challenger.id), { status: "defeated" });
+
+            } else if (winner === 'challenger') {
+                // 2. Challenger wins: King knocked off, challenger claims throne with 1 win
+                await incrementLeaderboardWins(challenger.name);
+                
+                await updateDoc(doc(db, "rail_fahys", king.id), { status: "defeated" });
+                await updateDoc(doc(db, "rail_fahys", challenger.id), { sessionWins: 1 });
+            }
+        };
+
+        // Manual queue bypass tool
+        window.removePlayer = async (playerId) => {
+            if (confirm("Are you sure you want to remove this player from the queue line?")) {
+                await updateDoc(doc(db, "rail_fahys", playerId), { status: "removed" });
+            }
+        };
+
+        // Internal leaderboard update pipeline
+        async function incrementLeaderboardWins(playerName) {
+            const cleanKey = playerName.toLowerCase().replace(/[^a-z0-9]/g, "_");
+            const leaderDocRef = doc(db, "leaderboard_fahys", cleanKey);
+            const docSnap = await getDoc(leaderDocRef);
+
+            if (docSnap.exists()) {
+                const currentData = docSnap.data();
+                await setDoc(leaderDocRef, {
+                    name: playerName,
+                    wins: (currentData.wins || 0) + 1
+                }, { merge: true });
+            } else {
+                await setDoc(leaderDocRef, {
+                    name: playerName,
+                    wins: 1
+                });
+            }
+        }
+    </script>
+</body>
+</html>
