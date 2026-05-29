@@ -11,21 +11,30 @@
         .top-nav { position: sticky; top: 0; background: var(--bg); z-index: 90; padding: 10px 0; border-bottom: 1px solid #333; }
         .match-box { background: var(--card); margin: 10px 15px; padding: 20px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
         .player-name { font-size: 24px; font-weight: 800; color: var(--accent); display: block; }
-        .lists-container { padding: 0 20px 180px; text-align: left; max-width: 500px; margin: auto; }
         
-        /* Non-Intrusive QR Code Card Setup */
-        .qr-card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 15px; margin-top: 15px; display: flex; align-items: center; gap: 15px; }
-        .qr-wrapper { background: white; padding: 6px; border-radius: 6px; width: 75px; height: 75px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .qr-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .qr-text h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: bold; }
-        .qr-text p { margin: 0; font-size: 12px; opacity: 0.6; line-height: 1.3; }
+        /* Master Split Layout Workspace */
+        .main-layout { display: grid; grid-template-columns: 1fr; gap: 30px; padding: 0 20px 180px; max-width: 900px; margin: auto; text-align: left; }
+        .lists-column { min-width: 0; }
+        
+        /* Anchored Side Rail QR Panel */
+        .qr-column { display: flex; flex-direction: column; justify-content: flex-start; padding-top: 20px; }
+        .qr-sticky-card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 24px; text-align: center; position: sticky; top: 120px; }
+        .qr-large-wrapper { background: white; padding: 12px; border-radius: 8px; width: 180px; height: 180px; margin: 0 auto 16px auto; display: flex; align-items: center; justify-content: center; }
+        .qr-large-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+        .qr-sticky-card h4 { margin: 0 0 8px 0; font-size: 18px; font-weight: bold; color: white; }
+        .qr-sticky-card p { margin: 0; font-size: 13px; opacity: 0.7; line-height: 1.4; }
 
         h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 12px; text-transform: uppercase; opacity: 0.6; margin-top: 20px; }
         .entry { background: #1a1a1a; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; }
         .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; z-index: 100; }
-        .input-group { display: flex; gap: 8px; }
+        .input-group { display: flex; gap: 8px; max-width: 500px; margin: auto; }
         input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
         button { padding: 12px 24px; border-radius: 6px; border: none; font-weight: bold; background: var(--accent); color: black; cursor: pointer; }
+
+        /* Media Query for Desktop Screen Real Estate */
+        @media (min-width: 768px) {
+            .main-layout { grid-template-columns: 1fr 260px; }
+        }
     </style>
 </head>
 <body>
@@ -42,22 +51,27 @@
             </div>
         </div>
     </div>
-    <div class="lists-container">
-        <div class="qr-card">
-            <div class="qr-wrapper">
-                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH6AMbFCo09unSmwAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLm0bAAABmklEQVR42u3YwUrDUBCE4Y7S3v//K3pRL969i8pFCv6DiLIgS9Is6Xiwz8vM7A6b7S7b9Xw+v4wxtvF8Pr+u6/rS9v00vIwxXscY96ZpfmOMp/v3N7Z96b6NMcZ9XdefuR7bV+un36fXe922fV9P/6vXN6O/Zst3ut3v0+9v9e9X/6/32779p/vX/3X6/9vW//t9tW9b/7f91/q/u97X6v9a3X/f9te/+9+uX9u/Wvv9vtY/+2vvf/t/Nf/u/+/f9f7vXt/X9fW///+9bvv/W7Xf1vrvbfW+u9fV/mP/X81/q6+9/lP/f+vft/W3vX+ffdfXe932vbZffbX9T9u39Xvff7fVv1v/X/tt39bq++v+/m2f9X//f7X6u9gX+1Xv+HbeG/r63q9u+2q/sX/1j7Uvt9t9X/p3fW5vP79bfv/m9r+V/X+rtP9bfe66/r2P1T1ff+90b79/t/vF7df2+dfvvv5Xv9v/X6zZ/v9qW9nnvj/O1/u1fK9vvY+x9bZa9n5r9XfVf9N/e2vv3fTft3OruO/+vr/p7/uYrvXb3mrtYn/Z9f+u/u5fe/vGfnrb3b/76+1Xtdb6fW/Z8p0tP/bf9t6Y9fU2tfYZa8xY3++v7Y/7vGvbtZ3tX3v9fGffW+u39f/b6v/1b///6v+9V96U/m/17/P7/t3er7W7/1Udf6b9/bL760rd6+9bZes45f56w+6b6l9WveX2Zbe/2zFttbyv1eZ7unV6p8v3/W6ve12v12vffvevdV9fa6v++u/Otvtvd//+e7uW316vX/+ur6veb+v/+n+6u7bV2rXeWq1j9P1vW/+3Zf3eN6a39u/v67N//Wf/uqy3Wuv/Vb//w/b3Xv1b/Xv/+v/GfFv6Wv/q7976N+b9vvZftO+GfTymT+b0b/62et+v/Zfu/f3W+u7XWf9O29reN9Z+v/f19reYv1V/MdaOub9W/03Vp/rv9/XWrvWf/etX2f5vtfZ/bO/3Wp/fU9u9Xfv87f2+Wre/79e/6b/at6r//f5Xm9/Xv/Xbtb69b/v6V7Xte9/f5/r9vvX/reG36L/97t8r/avtW9WvY7vfv7f1e9vvP/Pfa/v7b/Uv/fdv+/v/K6vf/+/7Xv/Z/+X7+r9av/b/F/Xf1f/7d/u/7f/vXv7V/69Vf/v6p/u9ZeuYttvS/9U+beWb/ve5P9f/Zat/S/uV3mfr/2/b9b/Z67/r/9Tee+XfN+30+z63v/+P7fV/rU2/P/6v2a5t97Wfve3NfvW7/X77f3e/rf777f9X9bveq9ff1Ww9W/vvVvUv/ef++u3rf2f9ffv1/be97e93W7v9v239f/9fX99b9VftW/9Z/fW//uv/bK/+W0zXv+v9X//X/2v/+6/W9/vW29a2/Z/+m+rv2/v/V9v3/ft7vV+vvb3XW9p/V9vev9O+bdfK/Z1u+7d1/GfXttZfa/unU9uv9/t9Nf/H2vav36z0V/fXbe/V3/Xftq0f+/XWf/vff/u36v+7NfaNfW1f3/+u79vXt5+p//6Nee93W5v+9X9f3X6f6/3ZvvNfqv/+3erftF6zD+7tW1X/qve6X9XbfbX/+rvf730ff02p/9hW/7Y2rbeO2Nq/1be9v9b2Vvv0H6Z72v/7Y//3xXre1vdX9R//aee9Xv+/atVfN6Z2Vf3btP/p7+7/K/+rbeVvW/8vrO6f6C/bfe77Y3qreL+vvtW3V91f+3atve1999u+/U6/Wn+fqt89G3b/v7Dfrt/vK7/V927V/87q37Z9v8bUbtb8P/u//u3avv//X/9v/+r//66mXf6r1Y53vFfbf/O9fN863K0bf6u96t/HttZ9fU2tf/V+X/7Rvvb9/fW/f1dt+/f63+rfat+6P/P9Xf29Xet97/fbeo/X2u1zXb+vNbeWf7vW/+bW8b9Zf6/Z9n+r1v6u1vdX8//6a6t1a/v//p+v9/v/+f6/Gmv7+v6e/pvt2/+r2vb6f9u3rdrf9L/N79P/vbeWffR//N6VbY3X++rbP9Xva/W/at++9vvvT9v//1fX99rX7Tf66/e++K8f09/X2p/G6b/+26p9y8a2Vd/+Y3s/f9Wv9R6vdT3Wq/X/W6//V9uXrfb9/XW1b9m6sU+1/v0+v9f//+r/VqX+p9W/u3zZ/p9V63Nbt9e9Lut9W92/+v/bX/WveN+aNfaNVfX2b+uvtWvH9P9E///Y1vD/G+Nf7L93e++vfX/HvnfVf6/be8X7XqWrf9X/U3u9X/XW8nvd/vW/1VvtX6v697v//Vb3f/2Xrfb7fP9/re9/WbWf//fV/atVv/Z7te84bVv/V6/+Y+b/Vf+3fVvZ/62eZsc7Xp...==" alt="Table QR Link">
-            </div>
-            <div class="qr-text">
-                <h4>Scan to Challenge</h4>
-                <p>Have an opponent ready? Let them scan this table code to log right into the active digital rail lineup.</p>
-            </div>
+
+    <div class="main-layout">
+        <div class="lists-column">
+            <h3>Live Leaderboard</h3>
+            <div id="leaderboardList"></div>
+            
+            <h3>The Rail</h3>
+            <div id="railList"></div>
         </div>
 
-        <h3>Live Leaderboard</h3>
-        <div id="leaderboardList"></div>
-        <h3>The Rail</h3>
-        <div id="railList"></div>
+        <div class="qr-column">
+            <div class="qr-sticky-card">
+                <div class="qr-large-wrapper">
+                    <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAEAAQADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFgEBAQEAAAAAAAAAAAAAAAAAAAEC/8QAFgEBAQEAAAAAAAAAAAAAAAAAAAEC/9oADAMBAAIRAxEAAAFUADgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//9k=" alt="App QR Code">
+                </div>
+                <h4>Scan to Join</h4>
+                <p>Ready to challenge? Scan this screen to drop your name directly into the active digital lineup.</p>
+            </div>
+        </div>
     </div>
+
     <div class="controls">
         <div class="input-group">
             <input type="text" id="nameInput" placeholder="First & Last Name (Req)">
@@ -83,10 +97,8 @@
         const railRef = collection(db, "rail");
         const leadersRef = collection(db, "leaderboard");
 
-        // Target Venue Location Configuration (Gino & Carlo Coordinates)
         const VENUE_GEO = { lat: 37.7996, lng: -122.4086, radiusKm: 0.075 };
 
-        // Unique Browser Session Fingerprint Engine
         function getOrCreateSession() {
             let token = localStorage.getItem('koth_device_token');
             if (!token) {
@@ -96,7 +108,6 @@
             return token;
         }
 
-        // Haversine Distance Formula
         function getDistanceInKm(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -120,7 +131,6 @@
                 return;
             }
 
-            // Trigger Geofence verification pipeline
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const distance = getDistanceInKm(
                     VENUE_GEO.lat,
