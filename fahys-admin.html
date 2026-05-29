@@ -2,54 +2,72 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Hill - Fahy's Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin - The Hill (Fahy's)</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
-        :root { --accent: #ef4444; --bg: #0a0a0a; --card: #161616; --success: #22c55e; }
-        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; text-align: center; }
-        .admin-box { max-width: 600px; margin: 0 auto 30px auto; background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 20px; text-align: left; }
-        h2 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
-        .current-match { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #222; }
-        .player-block { flex: 1; }
-        .player-title { font-size: 11px; opacity: 0.5; text-transform: uppercase; }
-        .player-name { font-size: 20px; font-weight: bold; color: #fff; display: block; margin-top: 4px; }
-        .vs-divider { padding: 0 15px; opacity: 0.3; font-weight: bold; }
-        .btn { padding: 10px 16px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
-        .btn-win { background: var(--success); color: black; width: 100%; margin-top: 10px; }
-        .btn-remove { background: var(--accent); color: white; padding: 6px 12px; font-size: 12px; }
-        .rail-item { display: flex; justify-content: space-between; align-items: center; background: #111; padding: 12px; margin-bottom: 6px; border-radius: 8px; border: 1px solid #222; }
+        :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --edit: #f59e0b; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; }
+        .event-banner { background: #fff; color: #000; font-weight: 900; padding: 12px; font-size: 16px; text-transform: uppercase; }
+        .top-nav { position: sticky; top: 0; background: var(--bg); z-index: 90; padding: 10px 0; border-bottom: 1px solid #333; }
+        .match-box { background: var(--card); margin: 10px 15px; padding: 15px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
+        .player-name { font-size: 20px; font-weight: 800; color: var(--accent); display: block; }
+        .lists-container { padding: 0 20px 240px; text-align: left; max-width: 500px; margin: auto; }
+        h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 12px; text-transform: uppercase; opacity: 0.6; margin-top: 20px; }
+        .rail-entry { background: #1a1a1a; padding: 10px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; touch-action: none; }
+        .action-btns { display: flex; gap: 12px; }
+        .edit-btn { color: var(--edit); font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .del-btn { color: var(--warning); font-size: 11px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+        .input-group { display: flex; gap: 8px; }
+        input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        button { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-join { background: var(--accent); color: black; }
+        .btn-undo { background: #333; color: var(--warning); font-size: 11px; }
+        .btn-king { background: #2563eb; color: white; }
+        .btn-chal { background: #7c3aed; color: white; }
+        .btn-skip { background: #444; color: white; font-size: 12px; }
     </style>
 </head>
 <body>
-
-    <h1>Fahy's Arena Control</h1>
-    <p style="opacity: 0.6; margin-bottom: 30px;">Match Management & Queue Control Panel</p>
-
-    <div class="admin-box">
-        <h2>Active Table Match</h2>
-        <div class="current-match">
-            <div class="player-block" id="kingBlock">
-                <span class="player-title">King of the Hill</span>
+    <div class="event-banner">ADMIN: FAHY'S FOG & BARREL</div>
+    <div class="top-nav">
+        <div class="match-box">
+            <div class="player">
                 <span id="kingName" class="player-name">---</span>
-                <button class="btn btn-win" onclick="resolveMatch('king')">King Won Match</button>
+                <span id="kingStreak" style="font-size:11px; opacity:0.8;"></span>
+                <div id="kingActions" class="action-btns" style="justify-content:center; margin-top:4px;"></div>
             </div>
-            <div class="vs-divider">VS</div>
-            <div class="player-block" id="chalBlock">
-                <span class="player-title">Challenger</span>
+            <div style="opacity:0.3; font-size: 12px;">VS</div>
+            <div class="player">
                 <span id="chalName" class="player-name">---</span>
-                <button class="btn btn-win" onclick="resolveMatch('challenger')">Challenger Won Match</button>
+                <div id="chalActions" class="action-btns" style="justify-content:center; margin-top:4px;"></div>
             </div>
         </div>
     </div>
-
-    <div class="admin-box">
-        <h2>Manage The Rail Lineup</h2>
-        <div id="adminRailList"></div>
+    <div class="lists-container">
+        <h3>Leaderboard</h3>
+        <div id="leaderboardList"></div>
+        <h3>The Rail (Hold to Drag ↕️)</h3>
+        <div id="railList"></div>
+    </div>
+    <div class="controls">
+        <div class="input-group">
+            <input type="text" id="nameInput" placeholder="Add Player (First & Last)">
+            <button class="btn-join" onclick="joinRail()">ADD</button>
+        </div>
+        <div class="btn-row">
+            <button class="btn-undo" onclick="undoLastMatch()">UNDO</button>
+            <button class="btn-king" onclick="recordWin('king')">KING WON</button>
+            <button class="btn-chal" onclick="recordWin('chal')">CHAL WON</button>
+        </div>
+        <button class="btn-skip" onclick="skipPlayer()">SKIP PLAYER (MOVE TO END)</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, updateDoc, onSnapshot, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, increment, getDocs, where, deleteDoc, limit, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
@@ -63,95 +81,139 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
+        // Fahy's Environment Isolated Data Collections
         const railRef = collection(db, "rail_fahys");
         const leadersRef = collection(db, "leaderboard_fahys");
+        const snapshotsRef = collection(db, "snapshots_fahys");
 
-        let activePlayers = [];
+        let currentPlayers = [];
+        let leaderboardData = [];
 
-        // Real-time sync engine with Fahy's rail dataset
-        onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
-            activePlayers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
-            
-            document.getElementById('kingName').innerText = activePlayers[0]?.name || "---";
-            document.getElementById('chalName').innerText = activePlayers[1]?.name || "---";
-            
-            // Build the queue management panel view
-            document.getElementById('adminRailList').innerHTML = activePlayers.map((p, i) => {
-                let roleLabel = "";
-                if (i === 0) roleLabel = `<span style="color:#22c55e; font-size:12px;">[KING] </span>`;
-                if (i === 1) roleLabel = `<span style="color:#3b82f6; font-size:12px;">[CHALLENGER] </span>`;
-                
-                return `
-                    <div class="rail-item">
-                        <span><strong>${i + 1}.</strong> ${roleLabel}${p.name}</span>
-                        <button class="btn btn-remove" onclick="removePlayer('${p.id}')">Kick</button>
-                    </div>`;
-            }).join('');
+        // Long-press Drag and Drop initialization for Fahy's
+        new Sortable(document.getElementById('railList'), {
+            animation: 150,
+            delay: 500, 
+            delayOnTouchOnly: true,
+            touchStartThreshold: 5,
+            onEnd: async () => {
+                const batch = writeBatch(db);
+                const now = Date.now();
+                Array.from(document.getElementById('railList').children).forEach((item, index) => {
+                    batch.update(doc(db, "rail_fahys", item.getAttribute('data-id')), { time: now + index });
+                });
+                await batch.commit();
+            }
         });
 
-        // Match resolution pipeline execution
-        window.resolveMatch = async (winner) => {
-            if (activePlayers.length < 2) {
-                alert("You need both a King and a Challenger on the table to log a match win.");
-                return;
-            }
-
-            const king = activePlayers[0];
-            const challenger = activePlayers[1];
-
-            if (winner === 'king') {
-                // 1. King wins: increment current run streak counters
-                const currentWins = (king.sessionWins || 0) + 1;
-                
-                // Track historical leaderboard data
-                await incrementLeaderboardWins(king.name);
-
-                if (currentWins >= 5) {
-                    // Maximum run threshold met: retire King down into history, next up takes over empty throne
-                    alert(`${king.name} hit the 5-win run cap! Moving them off the table.`);
-                    await updateDoc(doc(db, "rail_fahys", king.id), { status: "retired", sessionWins: currentWins });
-                } else {
-                    // Update current table streak state
-                    await updateDoc(doc(db, "rail_fahys", king.id), { sessionWins: currentWins });
-                }
-                // Drop the defeated challenger from active status
-                await updateDoc(doc(db, "rail_fahys", challenger.id), { status: "defeated" });
-
-            } else if (winner === 'challenger') {
-                // 2. Challenger wins: King knocked off, challenger claims throne with 1 win
-                await incrementLeaderboardWins(challenger.name);
-                
-                await updateDoc(doc(db, "rail_fahys", king.id), { status: "defeated" });
-                await updateDoc(doc(db, "rail_fahys", challenger.id), { sessionWins: 1 });
-            }
+        window.editName = async (id, oldName) => {
+            const newName = prompt("Edit name:", oldName);
+            if (newName && newName !== oldName) await updateDoc(doc(db, "rail_fahys", id), { name: newName });
         };
 
-        // Manual queue bypass tool
-        window.removePlayer = async (playerId) => {
-            if (confirm("Are you sure you want to remove this player from the queue line?")) {
-                await updateDoc(doc(db, "rail_fahys", playerId), { status: "removed" });
-            }
+        window.removePlayer = async (id) => {
+            if (confirm("Remove player from rail?")) await updateDoc(doc(db, "rail_fahys", id), { status: "admin_removed" });
         };
 
-        // Internal leaderboard update pipeline
-        async function incrementLeaderboardWins(playerName) {
-            const cleanKey = playerName.toLowerCase().replace(/[^a-z0-9]/g, "_");
-            const leaderDocRef = doc(db, "leaderboard_fahys", cleanKey);
-            const docSnap = await getDoc(leaderDocRef);
+        window.joinRail = async () => {
+            const v = document.getElementById('nameInput').value.trim();
+            if (v.split(' ').length < 2) return alert("Please enter First & Last name.");
+            await addDoc(railRef, { name: v, time: Date.now(), status: "active", sessionWins: 0 }); 
+            document.getElementById('nameInput').value = '';
+        };
 
-            if (docSnap.exists()) {
-                const currentData = docSnap.data();
-                await setDoc(leaderDocRef, {
-                    name: playerName,
-                    wins: (currentData.wins || 0) + 1
-                }, { merge: true });
-            } else {
-                await setDoc(leaderDocRef, {
-                    name: playerName,
-                    wins: 1
-                });
-            }
+        async function saveSnapshot() {
+            const railState = currentPlayers.map(p => ({ name: p.name, time: p.time, sessionWins: p.sessionWins || 0 }));
+            const leaderState = leaderboardData.map(l => ({ name: l.name, wins: l.wins, streaks: l.streaks || 0 }));
+            await addDoc(snapshotsRef, { rail: railState, leaders: leaderState, timestamp: serverTimestamp() });
         }
+
+        window.recordWin = async (winner) => {
+            if (currentPlayers.length < 2) return;
+            await saveSnapshot();
+            const winIdx = winner === 'king' ? 0 : 1;
+            const loseIdx = winner === 'king' ? 1 : 0;
+            const wP = currentPlayers[winIdx];
+            const lP = currentPlayers[loseIdx];
+
+            const q = query(leadersRef, where("name", "==", wP.name));
+            const lSnap = await getDocs(q);
+            if (lSnap.empty) await addDoc(leadersRef, { name: wP.name, wins: 1, streaks: 0 });
+            else await updateDoc(lSnap.docs[0].ref, { wins: increment(1) });
+
+            await updateDoc(doc(db, "rail_fahys", lP.id), { status: "lost" });
+            await addDoc(railRef, { name: lP.name, time: Date.now(), status: "active", sessionWins: 0 });
+
+            let streak = (wP.sessionWins || 0) + 1;
+            if (streak >= 5) {
+                const q2 = query(leadersRef, where("name", "==", wP.name));
+                const lSnap2 = await getDocs(q2);
+                await updateDoc(lSnap2.docs[0].ref, { streaks: increment(1) });
+                await updateDoc(doc(db, "rail_fahys", wP.id), { status: "rotated" });
+                await addDoc(railRef, { name: wP.name, time: Date.now() + 50, status: "active", sessionWins: 0 });
+            } else {
+                await updateDoc(doc(db, "rail_fahys", wP.id), { sessionWins: streak });
+            }
+        };
+
+        window.undoLastMatch = async () => {
+            const q = query(snapshotsRef, orderBy("timestamp", "desc"), limit(1));
+            const snap = await getDocs(q);
+            if (snap.empty) return;
+            if (confirm("Undo last win and revert board?")) {
+                const batch = writeBatch(db);
+                const data = snap.docs[0].data();
+                currentPlayers.forEach(p => batch.update(doc(db, "rail_fahys", p.id), { status: "undone" }));
+                data.rail.forEach(p => batch.set(doc(railRef), { ...p, status: "active" }));
+                const currentLeaders = await getDocs(leadersRef);
+                currentLeaders.forEach(d => batch.delete(d.ref));
+                data.leaders.forEach(l => batch.set(doc(leadersRef), l));
+                await batch.commit();
+                await deleteDoc(snap.docs[0].ref);
+            }
+        };
+
+        window.skipPlayer = async () => {
+            const choice = prompt("Skip who to end of rail? (1 for KING, 2 for CHALLENGER)");
+            if (choice === '1' || choice === '2') {
+                await saveSnapshot();
+                const p = currentPlayers[parseInt(choice)-1];
+                await updateDoc(doc(db, "rail_fahys", p.id), { status: "skipped" });
+                await addDoc(railRef, { name: p.name, time: Date.now(), status: "active", sessionWins: 0 });
+            }
+        };
+
+        onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
+            currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
+            const k = currentPlayers[0];
+            const c = currentPlayers[1];
+            
+            document.getElementById('kingName').innerText = k?.name || "---";
+            document.getElementById('kingStreak').innerText = k ? `(${k.sessionWins || 0}/5)` : "";
+            document.getElementById('kingActions').innerHTML = k ? `<span class="edit-btn" onclick="editName('${k.id}','${k.name}')">Edit</span><span class="del-btn" onclick="removePlayer('${k.id}')">Del</span>` : "";
+            
+            document.getElementById('chalName').innerText = c?.name || "---";
+            document.getElementById('chalActions').innerHTML = c ? `<span class="edit-btn" onclick="editName('${c.id}','${c.name}')">Edit</span><span class="del-btn" onclick="removePlayer('${c.id}')">Del</span>` : "";
+            
+            document.getElementById('railList').innerHTML = currentPlayers.slice(2).map((p, i) => `
+                <div class="rail-entry" data-id="${p.id}">
+                    <span>${i+3}. ${p.name}</span>
+                    <div class="action-btns">
+                        <span class="edit-btn" onclick="editName('${p.id}','${p.name}')">Edit</span>
+                        <span class="del-btn" onclick="removePlayer('${p.id}')">Del</span>
+                    </div>
+                </div>`).join('');
+        });
+
+        onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
+            leaderboardData = snap.docs.map(d => d.data());
+            document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 3).map((d, i) => {
+                const data = d.data();
+                return `<div class="rail-entry" style="border-left: 4px solid var(--accent); margin-bottom:4px;">
+                    <span>${i === 0 ? '👑 ' : ''}${data.name} ${data.streaks > 0 ? '🔥' : ''}</span>
+                    <span style="color:var(--accent); font-weight:bold;">${data.wins}</span>
+                </div>`
+            }).join('');
+        });
     </script>
 </body>
 </html>
