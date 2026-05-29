@@ -75,26 +75,4 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
-            authDomain: "the-hill-pilot.firebaseapp.com",
-            projectId: "the-hill-pilot",
-            storageBucket: "the-hill-pilot.firebasestorage.app",
-            messagingSenderId: "965013734125",
-            appId: "1:965013734125:web:bef8fbb9029fb898d742e4"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const railRef = collection(db, "rail");
-        const leadersRef = collection(db, "leaderboard");
-
-        window.joinRail = async () => {
-            console.log("Button clicked!");
-            const v = document.getElementById('nameInput').value.trim();
-            if (v.split(' ').length < 2) {
-                alert("Please enter both your First and Last name.");
-                return;
-            }
+        import { getFirestore, collection, addDoc, on
