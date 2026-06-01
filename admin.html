@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin - The Hill</title>
+    <title>Admin - Gino & Carlo</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --edit: #f59e0b; }
@@ -80,24 +80,25 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const railRef = collection(db, "rail");
-        const leadersRef = collection(db, "leaderboard");
-        const snapshotsRef = collection(db, "snapshots");
+        
+        // UPDATED COLLECTION PATHS FOR GINO'S
+        const railRef = collection(db, "rail-ginos");
+        const leadersRef = collection(db, "leaderboard-ginos");
+        const snapshotsRef = collection(db, "snapshots-ginos");
 
         let currentPlayers = [];
         let leaderboardData = [];
 
-        // Long-press Drag and Drop initialization
         new Sortable(document.getElementById('railList'), {
             animation: 150,
-            delay: 500, // Forces 0.5s hold to prevent accidental drags while scrolling
+            delay: 500,
             delayOnTouchOnly: true,
             touchStartThreshold: 5,
             onEnd: async () => {
                 const batch = writeBatch(db);
                 const now = Date.now();
                 Array.from(document.getElementById('railList').children).forEach((item, index) => {
-                    batch.update(doc(db, "rail", item.getAttribute('data-id')), { time: now + index });
+                    batch.update(doc(db, "rail-ginos", item.getAttribute('data-id')), { time: now + index });
                 });
                 await batch.commit();
             }
@@ -105,11 +106,11 @@
 
         window.editName = async (id, oldName) => {
             const newName = prompt("Edit name:", oldName);
-            if (newName && newName !== oldName) await updateDoc(doc(db, "rail", id), { name: newName });
+            if (newName && newName !== oldName) await updateDoc(doc(db, "rail-ginos", id), { name: newName });
         };
 
         window.removePlayer = async (id) => {
-            if (confirm("Remove player from rail?")) await updateDoc(doc(db, "rail", id), { status: "admin_removed" });
+            if (confirm("Remove player from rail?")) await updateDoc(doc(db, "rail-ginos", id), { status: "admin_removed" });
         };
 
         window.joinRail = async () => {
@@ -138,7 +139,7 @@
             if (lSnap.empty) await addDoc(leadersRef, { name: wP.name, wins: 1, streaks: 0 });
             else await updateDoc(lSnap.docs[0].ref, { wins: increment(1) });
 
-            await updateDoc(doc(db, "rail", lP.id), { status: "lost" });
+            await updateDoc(doc(db, "rail-ginos", lP.id), { status: "lost" });
             await addDoc(railRef, { name: lP.name, time: Date.now(), status: "active", sessionWins: 0 });
 
             let streak = (wP.sessionWins || 0) + 1;
@@ -146,10 +147,10 @@
                 const q2 = query(leadersRef, where("name", "==", wP.name));
                 const lSnap2 = await getDocs(q2);
                 await updateDoc(lSnap2.docs[0].ref, { streaks: increment(1) });
-                await updateDoc(doc(db, "rail", wP.id), { status: "rotated" });
+                await updateDoc(doc(db, "rail-ginos", wP.id), { status: "rotated" });
                 await addDoc(railRef, { name: wP.name, time: Date.now() + 50, status: "active", sessionWins: 0 });
             } else {
-                await updateDoc(doc(db, "rail", wP.id), { sessionWins: streak });
+                await updateDoc(doc(db, "rail-ginos", wP.id), { sessionWins: streak });
             }
         };
 
@@ -160,7 +161,7 @@
             if (confirm("Undo last win and revert board?")) {
                 const batch = writeBatch(db);
                 const data = snap.docs[0].data();
-                currentPlayers.forEach(p => batch.update(doc(db, "rail", p.id), { status: "undone" }));
+                currentPlayers.forEach(p => batch.update(doc(db, "rail-ginos", p.id), { status: "undone" }));
                 data.rail.forEach(p => batch.set(doc(railRef), { ...p, status: "active" }));
                 const currentLeaders = await getDocs(leadersRef);
                 currentLeaders.forEach(d => batch.delete(d.ref));
@@ -175,7 +176,7 @@
             if (choice === '1' || choice === '2') {
                 await saveSnapshot();
                 const p = currentPlayers[parseInt(choice)-1];
-                await updateDoc(doc(db, "rail", p.id), { status: "skipped" });
+                await updateDoc(doc(db, "rail-ginos", p.id), { status: "skipped" });
                 await addDoc(railRef, { name: p.name, time: Date.now(), status: "active", sessionWins: 0 });
             }
         };
@@ -184,14 +185,11 @@
             currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
             const k = currentPlayers[0];
             const c = currentPlayers[1];
-            
             document.getElementById('kingName').innerText = k?.name || "---";
             document.getElementById('kingStreak').innerText = k ? `(${k.sessionWins || 0}/5)` : "";
             document.getElementById('kingActions').innerHTML = k ? `<span class="edit-btn" onclick="editName('${k.id}','${k.name}')">Edit</span><span class="del-btn" onclick="removePlayer('${k.id}')">Del</span>` : "";
-            
             document.getElementById('chalName').innerText = c?.name || "---";
             document.getElementById('chalActions').innerHTML = c ? `<span class="edit-btn" onclick="editName('${c.id}','${c.name}')">Edit</span><span class="del-btn" onclick="removePlayer('${c.id}')">Del</span>` : "";
-            
             document.getElementById('railList').innerHTML = currentPlayers.slice(2).map((p, i) => `
                 <div class="rail-entry" data-id="${p.id}">
                     <span>${i+3}. ${p.name}</span>
