@@ -75,4 +75,73 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, on
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
+            authDomain: "the-hill-pilot.firebaseapp.com",
+            projectId: "the-hill-pilot",
+            storageBucket: "the-hill-pilot.firebasestorage.app",
+            messagingSenderId: "965013734125",
+            appId: "1:965013734125:web:bef8fbb9029fb898d742e4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const railRef = collection(db, "rail");
+        const leadersRef = collection(db, "leaderboard");
+
+        window.joinRail = async () => {
+            console.log("Button clicked!");
+            try {
+                const v = document.getElementById('nameInput').value.trim();
+                if (v.split(' ').length < 2) {
+                    alert("Please enter both your First and Last name.");
+                    return;
+                }
+                
+                await addDoc(railRef, { 
+                    name: v, 
+                    time: Date.now(), 
+                    status: "active", 
+                    sessionWins: 0 
+                }); 
+                
+                document.getElementById('nameInput').value = '';
+                alert("You're on the rail!");
+            } catch (error) {
+                console.error("FIREBASE ERROR:", error);
+                alert("Error joining rail. Check console for details.");
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('joinBtn');
+            if (btn) {
+                btn.addEventListener('click', window.joinRail);
+            }
+        });
+
+        onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
+            const players = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
+            document.getElementById('kingName').innerText = players[0]?.name || "---";
+            document.getElementById('kingStreak').innerText = players[0] ? `(${players[0].sessionWins || 0}/5)` : "";
+            document.getElementById('chalName').innerText = players[1]?.name || "---";
+            document.getElementById('railList').innerHTML = players.slice(2).map((p, i) => `
+                <div class="entry">
+                    <span>${i+3}. ${p.name}</span>
+                </div>`).join('');
+        });
+
+        onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
+            document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map((d, i) => {
+                const data = d.data();
+                return `<div class="entry" style="border-left: 4px solid var(--accent);">
+                    <span>${i === 0 ? '👑 ' : ''}${data.name} ${data.streaks > 0 ? '🔥' : ''}</span>
+                    <span style="color:var(--accent); font-weight:bold;">${data.wins} Wins</span>
+                </div>`
+            }).join('');
+        });
+    </script>
+</body>
+</html>
