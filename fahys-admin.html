@@ -81,15 +81,14 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        // Fahy's Environment Isolated Data Collections
-        const railRef = collection(db, "rail_fahys");
-        const leadersRef = collection(db, "leaderboard_fahys");
-        const snapshotsRef = collection(db, "snapshots_fahys");
+        // UPDATED COLLECTION PATHS WITH HYPHENS
+        const railRef = collection(db, "rail-fahys");
+        const leadersRef = collection(db, "leaderboard-fahys");
+        const snapshotsRef = collection(db, "snapshots-fahys");
 
         let currentPlayers = [];
         let leaderboardData = [];
 
-        // Long-press Drag and Drop initialization for Fahy's
         new Sortable(document.getElementById('railList'), {
             animation: 150,
             delay: 500, 
@@ -99,7 +98,7 @@
                 const batch = writeBatch(db);
                 const now = Date.now();
                 Array.from(document.getElementById('railList').children).forEach((item, index) => {
-                    batch.update(doc(db, "rail_fahys", item.getAttribute('data-id')), { time: now + index });
+                    batch.update(doc(db, "rail-fahys", item.getAttribute('data-id')), { time: now + index });
                 });
                 await batch.commit();
             }
@@ -107,11 +106,11 @@
 
         window.editName = async (id, oldName) => {
             const newName = prompt("Edit name:", oldName);
-            if (newName && newName !== oldName) await updateDoc(doc(db, "rail_fahys", id), { name: newName });
+            if (newName && newName !== oldName) await updateDoc(doc(db, "rail-fahys", id), { name: newName });
         };
 
         window.removePlayer = async (id) => {
-            if (confirm("Remove player from rail?")) await updateDoc(doc(db, "rail_fahys", id), { status: "admin_removed" });
+            if (confirm("Remove player from rail?")) await updateDoc(doc(db, "rail-fahys", id), { status: "admin_removed" });
         };
 
         window.joinRail = async () => {
@@ -140,7 +139,7 @@
             if (lSnap.empty) await addDoc(leadersRef, { name: wP.name, wins: 1, streaks: 0 });
             else await updateDoc(lSnap.docs[0].ref, { wins: increment(1) });
 
-            await updateDoc(doc(db, "rail_fahys", lP.id), { status: "lost" });
+            await updateDoc(doc(db, "rail-fahys", lP.id), { status: "lost" });
             await addDoc(railRef, { name: lP.name, time: Date.now(), status: "active", sessionWins: 0 });
 
             let streak = (wP.sessionWins || 0) + 1;
@@ -148,10 +147,10 @@
                 const q2 = query(leadersRef, where("name", "==", wP.name));
                 const lSnap2 = await getDocs(q2);
                 await updateDoc(lSnap2.docs[0].ref, { streaks: increment(1) });
-                await updateDoc(doc(db, "rail_fahys", wP.id), { status: "rotated" });
+                await updateDoc(doc(db, "rail-fahys", wP.id), { status: "rotated" });
                 await addDoc(railRef, { name: wP.name, time: Date.now() + 50, status: "active", sessionWins: 0 });
             } else {
-                await updateDoc(doc(db, "rail_fahys", wP.id), { sessionWins: streak });
+                await updateDoc(doc(db, "rail-fahys", wP.id), { sessionWins: streak });
             }
         };
 
@@ -162,7 +161,7 @@
             if (confirm("Undo last win and revert board?")) {
                 const batch = writeBatch(db);
                 const data = snap.docs[0].data();
-                currentPlayers.forEach(p => batch.update(doc(db, "rail_fahys", p.id), { status: "undone" }));
+                currentPlayers.forEach(p => batch.update(doc(db, "rail-fahys", p.id), { status: "undone" }));
                 data.rail.forEach(p => batch.set(doc(railRef), { ...p, status: "active" }));
                 const currentLeaders = await getDocs(leadersRef);
                 currentLeaders.forEach(d => batch.delete(d.ref));
@@ -177,7 +176,7 @@
             if (choice === '1' || choice === '2') {
                 await saveSnapshot();
                 const p = currentPlayers[parseInt(choice)-1];
-                await updateDoc(doc(db, "rail_fahys", p.id), { status: "skipped" });
+                await updateDoc(doc(db, "rail-fahys", p.id), { status: "skipped" });
                 await addDoc(railRef, { name: p.name, time: Date.now(), status: "active", sessionWins: 0 });
             }
         };
