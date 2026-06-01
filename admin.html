@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin - Gino & Carlo</title>
+    <title>Admin - The Hill (Gino & Carlo)</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; --warning: #ef4444; --edit: #f59e0b; }
@@ -81,7 +81,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        // UPDATED COLLECTION PATHS FOR GINO'S
         const railRef = collection(db, "rail-ginos");
         const leadersRef = collection(db, "leaderboard-ginos");
         const snapshotsRef = collection(db, "snapshots-ginos");
@@ -90,10 +89,7 @@
         let leaderboardData = [];
 
         new Sortable(document.getElementById('railList'), {
-            animation: 150,
-            delay: 500,
-            delayOnTouchOnly: true,
-            touchStartThreshold: 5,
+            animation: 150, delay: 500, delayOnTouchOnly: true, touchStartThreshold: 5,
             onEnd: async () => {
                 const batch = writeBatch(db);
                 const now = Date.now();
@@ -108,11 +104,9 @@
             const newName = prompt("Edit name:", oldName);
             if (newName && newName !== oldName) await updateDoc(doc(db, "rail-ginos", id), { name: newName });
         };
-
         window.removePlayer = async (id) => {
             if (confirm("Remove player from rail?")) await updateDoc(doc(db, "rail-ginos", id), { status: "admin_removed" });
         };
-
         window.joinRail = async () => {
             const v = document.getElementById('nameInput').value.trim();
             if (v.split(' ').length < 2) return alert("Please enter First & Last name.");
@@ -183,30 +177,26 @@
 
         onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
             currentPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
-            const k = currentPlayers[0];
-            const c = currentPlayers[1];
+            const k = currentPlayers[0]; const c = currentPlayers[1];
             document.getElementById('kingName').innerText = k?.name || "---";
             document.getElementById('kingStreak').innerText = k ? `(${k.sessionWins || 0}/5)` : "";
             document.getElementById('kingActions').innerHTML = k ? `<span class="edit-btn" onclick="editName('${k.id}','${k.name}')">Edit</span><span class="del-btn" onclick="removePlayer('${k.id}')">Del</span>` : "";
             document.getElementById('chalName').innerText = c?.name || "---";
             document.getElementById('chalActions').innerHTML = c ? `<span class="edit-btn" onclick="editName('${c.id}','${c.name}')">Edit</span><span class="del-btn" onclick="removePlayer('${c.id}')">Del</span>` : "";
             document.getElementById('railList').innerHTML = currentPlayers.slice(2).map((p, i) => `
-                <div class="rail-entry" data-id="${p.id}">
-                    <span>${i+3}. ${p.name}</span>
-                    <div class="action-btns">
-                        <span class="edit-btn" onclick="editName('${p.id}','${p.name}')">Edit</span>
-                        <span class="del-btn" onclick="removePlayer('${p.id}')">Del</span>
-                    </div>
+                <div class="rail-entry" data-id="${p.id}"><span>${i+3}. ${p.name}</span>
+                    <div class="action-btns"><span class="edit-btn" onclick="editName('${p.id}','${p.name}')">Edit</span><span class="del-btn" onclick="removePlayer('${p.id}')">Del</span></div>
                 </div>`).join('');
         });
 
+        // UPDATED LEADERBOARD: Shows ALL players
         onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
             leaderboardData = snap.docs.map(d => d.data());
-            document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 3).map((d, i) => {
+            document.getElementById('leaderboardList').innerHTML = snap.docs.map((d, i) => {
                 const data = d.data();
                 return `<div class="rail-entry" style="border-left: 4px solid var(--accent); margin-bottom:4px;">
                     <span>${i === 0 ? '👑 ' : ''}${data.name} ${data.streaks > 0 ? '🔥' : ''}</span>
-                    <span style="color:var(--accent); font-weight:bold;">${data.wins}</span>
+                    <span style="color:var(--accent); font-weight:bold;">${data.wins} wins</span>
                 </div>`
             }).join('');
         });
