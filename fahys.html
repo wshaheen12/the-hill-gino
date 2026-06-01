@@ -24,7 +24,7 @@
         <span id="chalName" class="player-name">---</span>
     </div>
     <div class="list-section">
-        <h3>Top 5 Leaders</h3>
+        <h3>Leaderboard</h3>
         <div id="leaderboardList"></div>
         <h3>The Rail</h3>
         <div id="railList"></div>
@@ -54,9 +54,9 @@
                 <div class="entry"><span>${i+3}. ${p.name}</span></div>`).join('');
         });
 
-        // LEADERBOARD: Limited to Top 5
+        // FULL LEADERBOARD
         onSnapshot(query(collection(db, "leaderboard-fahys"), orderBy("wins", "desc")), (snap) => {
-            document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map((d, i) => {
+            document.getElementById('leaderboardList').innerHTML = snap.docs.map((d, i) => {
                 const data = d.data();
                 return `<div class="entry"><span>${i+1}. ${data.name}</span><strong>${data.wins} wins</strong></div>`;
             }).join('');
