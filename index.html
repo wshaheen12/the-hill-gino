@@ -2,97 +2,63 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Hill - Gino and Carlo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hill - Gino & Carlo</title>
     <style>
         :root { --accent: #22c55e; --bg: #0a0a0a; --card: #161616; }
-        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; }
-        .event-banner { background: #fff; color: #000; font-weight: 900; padding: 12px; font-size: 16px; text-transform: uppercase; }
-        .top-nav { position: sticky; top: 0; background: var(--bg); z-index: 90; padding: 10px 0; border-bottom: 1px solid #333; }
-        .match-box { background: var(--card); margin: 10px 15px; padding: 20px; border-radius: 12px; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding-bottom: 50px; }
+        .banner { background: var(--accent); color: black; font-weight: 900; padding: 15px; text-transform: uppercase; }
+        .match-box { background: var(--card); margin: 20px; padding: 20px; border-radius: 12px; border: 1px solid #333; }
         .player-name { font-size: 24px; font-weight: 800; color: var(--accent); display: block; }
-        .main-layout { display: flex; flex-wrap: wrap; gap: 20px; padding: 20px; max-width: 900px; margin: auto; }
-        .lists-container { flex: 2; min-width: 300px; text-align: left; }
-        .qr-sidebar { flex: 1; min-width: 250px; }
-        .qr-card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 15px; position: sticky; top: 100px; }
-        .qr-wrapper { background: white; padding: 6px; border-radius: 6px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .qr-wrapper img { width: 100%; height: 100%; object-fit: contain; }
-        .qr-text h4 { margin: 0; font-size: 16px; color: var(--accent); }
-        h3 { border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 12px; text-transform: uppercase; opacity: 0.6; margin-top: 20px; }
-        .entry { background: #1a1a1a; padding: 12px; margin-bottom: 6px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; }
-        .controls { position: fixed; bottom: 0; width: 100%; background: #111; padding: 15px; box-sizing: border-box; border-top: 1px solid #444; z-index: 100; }
-        .input-group { display: flex; gap: 8px; max-width: 500px; margin: auto; }
-        input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
-        button { padding: 12px 24px; border-radius: 6px; border: none; font-weight: bold; background: var(--accent); color: black; cursor: pointer; }
+        .list-section { padding: 0 20px; text-align: left; max-width: 500px; margin: auto; }
+        h3 { border-bottom: 1px solid #333; padding-bottom: 5px; text-transform: uppercase; opacity: 0.6; margin-top: 30px; }
+        .entry { background: #161616; padding: 12px; margin-bottom: 6px; border-radius: 8px; border: 1px solid #222; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
-    <div class="event-banner">Gino & Carlo - King of the Hill</div>
-    <div class="top-nav">
-        <div class="match-box">
-            <div class="player">
-                <span id="kingName" class="player-name">---</span>
-                <span id="kingStreak" style="font-size:12px; opacity:0.8;"></span>
-            </div>
-            <div style="opacity:0.3;">VS</div>
-            <div class="player">
-                <span id="chalName" class="player-name">---</span>
-            </div>
-        </div>
+    <div class="banner">Gino & Carlo - King of the Hill</div>
+    <div class="match-box">
+        <span style="font-size:12px; opacity:0.5;">CURRENT MATCH</span>
+        <span id="kingName" class="player-name">---</span>
+        <div style="margin: 10px 0; opacity: 0.3;">VS</div>
+        <span id="chalName" class="player-name">---</span>
     </div>
-    <div class="main-layout">
-        <div class="lists-container">
-            <h3>Live Leaderboard</h3>
-            <div id="leaderboardList"></div>
-            <h3>The Rail</h3>
-            <div id="railList"></div>
-        </div>
-        <div class="qr-sidebar">
-            <div class="qr-card">
-                <div class="qr-wrapper"><img src="ginos-qr.jpg.png" alt="App QR Code"></div>
-                <div class="qr-text"><h4>Scan to Join</h4></div>
-            </div>
-        </div>
+    <div class="list-section">
+        <h3>Top 5 Leaders</h3>
+        <div id="leaderboardList"></div>
+        <h3>The Rail</h3>
+        <div id="railList"></div>
     </div>
-    <div style="height: 100px;"></div>
-    <div class="controls">
-        <div class="input-group">
-            <input type="text" id="nameInput" placeholder="First & Last Name (Req)">
-            <button id="joinBtn">JOIN RAIL</button>
-        </div>
-    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        const firebaseConfig = { apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00", authDomain: "the-hill-pilot.firebaseapp.com", projectId: "the-hill-pilot", storageBucket: "the-hill-pilot.firebasestorage.app", messagingSenderId: "965013734125", appId: "1:965013734125:web:bef8fbb9029fb898d742e4" };
+        import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJIICqGbSr8DwyyPtG-cRCRr4W7T7xd00",
+            authDomain: "the-hill-pilot.firebaseapp.com",
+            projectId: "the-hill-pilot",
+            storageBucket: "the-hill-pilot.firebasestorage.app",
+            messagingSenderId: "965013734125",
+            appId: "1:965013734125:web:bef8fbb9029fb898d742e4"
+        };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const railRef = collection(db, "rail-ginos");
-        const leadersRef = collection(db, "leaderboard-ginos");
-        window.joinRail = async () => {
-            try {
-                const v = document.getElementById('nameInput').value.trim();
-                if (v.split(' ').length < 2) { alert("Please enter both your First and Last name."); return; }
-                await addDoc(railRef, { name: v, time: Date.now(), status: "active", sessionWins: 0 }); 
-                document.getElementById('nameInput').value = '';
-                alert("You're on the rail!");
-            } catch (error) { console.error("FIREBASE ERROR:", error); alert("Error joining rail."); }
-        };
-        document.addEventListener('DOMContentLoaded', () => {
-            const btn = document.getElementById('joinBtn');
-            if (btn) btn.addEventListener('click', window.joinRail);
-        });
-        onSnapshot(query(railRef, orderBy("time", "asc")), (snap) => {
-            const players = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.status === "active");
+
+        onSnapshot(query(collection(db, "rail-ginos"), orderBy("time", "asc")), (snap) => {
+            const players = snap.docs.map(d => d.data()).filter(p => p.status === "active");
             document.getElementById('kingName').innerText = players[0]?.name || "---";
-            document.getElementById('kingStreak').innerText = players[0] ? `(${players[0].sessionWins || 0}/5)` : "";
             document.getElementById('chalName').innerText = players[1]?.name || "---";
-            document.getElementById('railList').innerHTML = players.slice(2).map((p, i) => `<div class="entry"><span>${i+3}. ${p.name}</span></div>`).join('');
+            document.getElementById('railList').innerHTML = players.slice(2).map((p, i) => `
+                <div class="entry"><span>${i+3}. ${p.name}</span></div>`).join('');
         });
-        onSnapshot(query(leadersRef, orderBy("wins", "desc")), (snap) => {
+
+        // LEADERBOARD: Limited to Top 5
+        onSnapshot(query(collection(db, "leaderboard-ginos"), orderBy("wins", "desc")), (snap) => {
             document.getElementById('leaderboardList').innerHTML = snap.docs.slice(0, 5).map((d, i) => {
                 const data = d.data();
-                return `<div class="entry" style="border-left: 4px solid var(--accent);"><span>${i === 0 ? '👑 ' : ''}${data.name} ${data.streaks > 0 ? '🔥' : ''}</span><span style="color:var(--accent); font-weight:bold;">${data.wins} Wins</span></div>`
+                return `<div class="entry"><span>${i+1}. ${data.name}</span><strong>${data.wins} wins</strong></div>`;
             }).join('');
         });
     </script>
